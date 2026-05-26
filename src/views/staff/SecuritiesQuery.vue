@@ -83,7 +83,13 @@ const fetchData = async (params = {}) => {
   }
 }
 
+// 查询时支持单条件或双条件，若同时填写则必须同时满足（AND）
 const handleSearch = () => {
+  // 若两个条件均未填写，则提示错误
+  if (!searchNo.value && !searchStatus.value) {
+    ElMessage.error('请至少填写账户号或状态后再查询')
+    return
+  }
   const params = {}
   if (searchNo.value) params.securitiesAccountNo = searchNo.value
   if (searchStatus.value) params.accountStatus = searchStatus.value
@@ -113,5 +119,19 @@ onMounted(() => {
   font-weight: 500;
   border-radius: 0;
   cursor: pointer;
+}
+:deep(.el-form-item) {
+  margin-bottom: 28px !important;
+  position: relative;
+}
+
+/* 2. 扒掉红字的绝对定位，改用块级标准流，动态向下推挤后续组件 */
+:deep(.el-form-item__error) {
+  position: relative !important;
+  top: 4px !important; /* 让红字和输入框之间有 4px 的微调距离 */
+  left: 0 !important;
+  display: block !important;
+  line-height: 1.5 !important;
+  padding-bottom: 4px !important;
 }
 </style>

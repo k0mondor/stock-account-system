@@ -8,6 +8,7 @@
         <el-table-column prop="applyId" label="申请编号" width="140" />
         <el-table-column prop="investorId" label="投资者ID" width="100" />
         <el-table-column prop="accountType" label="账户类型" width="120" />
+        <el-table-column prop="applyType" label="申请类型" width="120" />
         <el-table-column label="申请状态" width="120">
           <template #default="{ row }">
             <el-tag :type="row.applyStatus === 'PENDING_APPROVE' ? 'warning' : ''">
@@ -48,22 +49,24 @@ import { ElMessage } from 'element-plus'
 import { ApplyStatusLabel } from '@/constants/enums'
 import PageHeader from '@/components/PageHeader.vue'
 
-const approvalList = ref([
-  {
-    applyId: 'APP00000001',
-    investorId: 10001,
-    accountType: 'SECURITIES',
-    applyStatus: 'PENDING_APPROVE',
-    applyTime: '2026-05-23T10:00:00'
-  },
-  {
-    applyId: 'APP00000002',
-    investorId: 10002,
-    accountType: 'FUND',
-    applyStatus: 'PENDING_APPROVE',
-    applyTime: '2026-05-23T11:30:00'
-  }
-])
+  const approvalList = ref([
+    {
+      applyId: 'APP00000001',
+      investorId: 10001,
+      accountType: 'SECURITIES',
+      applyType: 'ACCOUNT_OPEN',
+      applyStatus: 'PENDING_APPROVE',
+      applyTime: '2026-05-23T10:00:00'
+    },
+    {
+      applyId: 'APP00000002',
+      investorId: 10002,
+      accountType: 'FUND',
+      applyType: 'ACCOUNT_OPEN',
+      applyStatus: 'PENDING_APPROVE',
+      applyTime: '2026-05-23T11:30:00'
+    }
+  ])
 
 const dialogVisible = ref(false)
 const currentApply = ref(null)

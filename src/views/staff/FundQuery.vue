@@ -20,7 +20,8 @@
           <div><strong>账户号：</strong>{{ accountInfo.fundAccountNo }}</div>
           <div><strong>投资者ID：</strong>{{ accountInfo.investorId }}</div>
           <div><strong>银行卡：</strong>{{ accountInfo.bankCardNo }}</div>
-          <div><strong>余额：</strong><span style="font-size: 18px; font-weight: 600;">¥ {{ accountInfo.balance.toFixed(2) }}</span></div>
+          <div><strong>可用资金：</strong><span style="font-size: 18px; font-weight: 600;">¥ {{ accountInfo.availableBalance.toFixed(2) }}</span></div>
+          <div><strong>冻结资金：</strong><span style="font-size: 18px; font-weight: 600;">¥ {{ accountInfo.frozenAmount.toFixed(2) }}</span></div>
           <div><strong>状态：</strong><AccountStatusTag :status="accountInfo.accountStatus" /></div>
         </div>
       </div>

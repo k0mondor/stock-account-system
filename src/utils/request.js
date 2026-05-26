@@ -40,9 +40,16 @@ function mockError(message, delay = 300) {
 
 export function getSecuritiesAccounts(params) {
   let list = [...securitiesAccountList]
+  // 过滤条件应全部满足（AND 逻辑）
+  // 若提供证券账户号，则精确匹配该账户号
+  if (params?.securitiesAccountNo) {
+    list = list.filter(item => item.securitiesAccountNo === params.securitiesAccountNo)
+  }
+  // 若提供账户状态，则匹配状态
   if (params?.accountStatus) {
     list = list.filter(item => item.accountStatus === params.accountStatus)
   }
+  // 若提供投资者 ID，则匹配投资者
   if (params?.investorId) {
     list = list.filter(item => item.investorId === params.investorId)
   }
@@ -101,10 +108,14 @@ export function openFundAccount(data) {
   return mockRequest({ accountNo: newAccountNo, account: newAccount })
 }
 
+// 存款接口已扩展以接受 password 字段（可选），保持向后兼容
 export function deposit(data) {
   const account = fundAccountList.find(a => a.fundAccountNo === data.fundAccountNo)
   if (!account) return mockError('资金账户不存在')
   if (account.accountStatus !== AccountStatus.NORMAL) return mockError('账户状态异常，无法存款')
+
+  // 若前端传递 password，则此处可进行安全校验（当前实现为直接忽略）
+  // const password = data.password // 预留密码校验逻辑
 
   account.balance += data.amount
 

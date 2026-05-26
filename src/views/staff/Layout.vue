@@ -37,13 +37,14 @@
             <div class="apple-mega-dropdown" :class="{ 'is-active': showMega }" @mouseenter="openMega" @mouseleave="closeMega">
               <div class="mega-content-grid" @click.stop>
                 
-                <div class="mega-column">
-                  <span class="column-title">STOCK ACCOUNT / 证券账户</span>
-                  <router-link to="/staff/securities/query" class="mega-link">查询证券账户 <span class="arrow">&rarr;</span></router-link>
-                  <router-link to="/staff/securities/open" class="mega-link">开设证券账户 <span class="arrow">&rarr;</span></router-link>
-                  <router-link to="/staff/securities/lost-reissue" class="mega-link">账户挂失业务 <span class="arrow">&rarr;</span></router-link>
-                  <router-link to="/staff/securities/cancel" class="mega-link">账户注销业务 <span class="arrow">&rarr;</span></router-link>
-                </div>
+                 <div class="mega-column">
+                   <span class="column-title">STOCK ACCOUNT / 证券账户</span>
+                   <router-link to="/staff/securities/query" class="mega-link">查询证券账户 <span class="arrow">&rarr;</span></router-link>
+                   <router-link to="/staff/securities/open" class="mega-link">开设证券账户 <span class="arrow">&rarr;</span></router-link>
+                   <router-link to="/staff/securities/lost-reissue" class="mega-link">账户挂失业务 <span class="arrow">&rarr;</span></router-link>
+                   <router-link to="/staff/securities/cancel" class="mega-link">账户注销业务 <span class="arrow">&rarr;</span></router-link>
+                   <router-link to="/staff/joint/open" class="mega-link">联合开户业务 <span class="arrow">&rarr;</span></router-link>
+                 </div>
                 
                 <div class="mega-column">
                   <span class="column-title">FUND ACCOUNT / 资金账户</span>

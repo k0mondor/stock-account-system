@@ -6,7 +6,8 @@ export const fundAccountList = [
     fundAccountNo: 'FND00000001',
     investorId: 10001,
     bankCardNo: '6222021234567890',
-    balance: 150000.00,
+    availableBalance: 120000.00,
+    frozenAmount: 30000.00,
     accountStatus: AccountStatus.NORMAL,
     tradePwdDigest: 'hash_trade_001',
     withdrawPwdDigest: 'hash_withdraw_001'
@@ -15,7 +16,8 @@ export const fundAccountList = [
     fundAccountNo: 'FND00000002',
     investorId: 10002,
     bankCardNo: '6222029876543210',
-    balance: 0.00,
+    availableBalance: 0.00,
+    frozenAmount: 0.00,
     accountStatus: AccountStatus.LOST,
     tradePwdDigest: 'hash_trade_002',
     withdrawPwdDigest: 'hash_withdraw_002'
