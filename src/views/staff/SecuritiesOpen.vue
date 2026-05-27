@@ -16,17 +16,15 @@
          <h3 style="text-align: center; margin-bottom: 24px; color: #333;">请选择账户类型</h3>
          <div style="display: flex; justify-content: center; gap: 24px; margin-bottom: 32px;">
            <el-button 
-             type="primary"
+             :type="accountType === 'PERSONAL' ? 'primary' : 'default'"
              @click="accountType = 'PERSONAL'"
-             :plain="accountType !== 'PERSONAL'"
              style="padding: 10px 28px; font-size: 14px; font-weight: 500; border-radius: 0;"
            >
              个人账户
            </el-button>
            <el-button 
-             type="primary"
+             :type="accountType === 'CORPORATE' ? 'primary' : 'default'"
              @click="accountType = 'CORPORATE'"
-             :plain="accountType !== 'CORPORATE'"
              style="padding: 10px 28px; font-size: 14px; font-weight: 500; border-radius: 0;"
            >
              法人账户
@@ -623,14 +621,6 @@ const resetForm = () => {
 </script>
 
 <style scoped>
-.btn-primary, .btn-secondary {
-  padding: 10px 28px;
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 0;
-  cursor: pointer;
-}
-
 :deep(.el-form-item__error) {
   position: relative;
 }

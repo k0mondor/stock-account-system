@@ -78,6 +78,7 @@ const handleSubmit = async () => {
   try {
     await changeFundPassword({
       fundAccountNo: form.value.fundAccountNo,
+      pwdType: form.value.pwdType,
       originalPassword: form.value.originalPassword,
       newPassword: form.value.newPassword,
       confirmPassword: form.value.confirmPassword
@@ -103,11 +104,4 @@ const resetForm = () => {
 </script>
 
 <style scoped>
-.btn-primary, .btn-secondary {
-  padding: 10px 28px;
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 0;
-  cursor: pointer;
-}
 </style>

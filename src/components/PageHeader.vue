@@ -15,6 +15,7 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import { ArrowLeft } from '@element-plus/icons-vue'
 
 const props = defineProps({
   title: {

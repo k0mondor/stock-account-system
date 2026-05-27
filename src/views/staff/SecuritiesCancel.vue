@@ -49,11 +49,11 @@
       <div v-if="step === 1" style="text-align: center; padding: 40px 0;">
         <div style="font-size: 64px; margin-bottom: 16px;">✓</div>
         <h3>注销成功</h3>
-        <p style="color: var(--color-text-muted);">账户状态已更新为 CANCELLED（销户）</p>
+        <p style="color: var(--color-text-muted);">账户状态已更新为 CLOSED（销户）</p>
         <div style="margin-top: 24px; padding: 24px; max-width: 400px; margin-left: auto; margin-right: auto; border: 1px solid var(--color-border); text-align: left;">
           <p style="margin: 0 0 8px;"><strong>账户号：</strong>{{ accountInfo.securitiesAccountNo }}</p>
           <p style="margin: 0 0 8px;"><strong>投资者：</strong>{{ accountInfo.investorName }}</p>
-          <p style="margin: 0;"><strong>当前状态：</strong><AccountStatusTag status="CANCELLED" /></p>
+          <p style="margin: 0;"><strong>当前状态：</strong><AccountStatusTag status="CLOSED" /></p>
         </div>
       </div>
     </el-card>
@@ -78,7 +78,7 @@ const accountInfo = ref(null)
 const cancelDisabledReason = computed(() => {
   if (!accountInfo.value) return ''
   const status = accountInfo.value.accountStatus
-  if (status === AccountStatus.CANCELLED) return '账户已销户'
+  if (status === AccountStatus.CLOSED) return '账户已销户'
   if (status === AccountStatus.LOST) return '账户已挂失，请先补办后再注销'
   if (status === AccountStatus.FROZEN) return '账户已冻结，无法注销'
   return ''
@@ -116,7 +116,7 @@ const handleCancel = async () => {
       }
     )
     await cancelSecuritiesAccount(accountInfo.value.securitiesAccountNo)
-    accountInfo.value.accountStatus = AccountStatus.CANCELLED
+    accountInfo.value.accountStatus = AccountStatus.CLOSED
     step.value = 1
     ElMessage.success('注销成功')
   } catch (e) {
@@ -134,11 +134,4 @@ const resetForm = () => {
 </script>
 
 <style scoped>
-.btn-primary, .btn-secondary {
-  padding: 10px 28px;
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 0;
-  cursor: pointer;
-}
 </style>

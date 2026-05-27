@@ -113,13 +113,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.btn-primary, .btn-secondary {
-  padding: 10px 28px;
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 0;
-  cursor: pointer;
-}
 :deep(.el-form-item) {
   margin-bottom: 28px !important;
   position: relative;

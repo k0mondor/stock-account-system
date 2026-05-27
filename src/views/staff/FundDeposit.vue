@@ -51,7 +51,7 @@ const handleDeposit = async () => {
       fundAccountNo: form.value.fundAccountNo,
       amount: form.value.amount
     })
-    ElMessage.success(`存款成功！当前余额：¥${res.data.balance.toFixed(2)}`)
+    ElMessage.success(`存款成功！当前可用资金：¥${res.data.availableBalance.toFixed(2)}`)
     resetForm()
   } catch (e) {
     ElMessage.error(e.message || '存款失败')
@@ -65,11 +65,4 @@ const resetForm = () => {
 </script>
 
 <style scoped>
-.btn-primary, .btn-secondary {
-  padding: 10px 28px;
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 0;
-  cursor: pointer;
-}
 </style>

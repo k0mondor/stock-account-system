@@ -28,7 +28,8 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             <div><strong>账户号：</strong>{{ accountInfo.fundAccountNo }}</div>
             <div><strong>投资者ID：</strong>{{ accountInfo.investorId }}</div>
-            <div><strong>余额：</strong>¥ {{ accountInfo.balance.toFixed(2) }}</div>
+            <div><strong>可用资金：</strong>¥ {{ accountInfo.availableBalance.toFixed(2) }}</div>
+            <div><strong>冻结资金：</strong>¥ {{ accountInfo.frozenAmount.toFixed(2) }}</div>
             <div><strong>状态：</strong><AccountStatusTag :status="accountInfo.accountStatus" /></div>
           </div>
           <div style="margin-top: 24px; text-align: center;">
@@ -49,11 +50,11 @@
       <div v-if="step === 1" style="text-align: center; padding: 40px 0;">
         <div style="font-size: 64px; margin-bottom: 16px;">✓</div>
         <h3>注销成功</h3>
-        <p style="color: var(--color-text-muted);">账户状态已更新为 CANCELLED（销户）</p>
+        <p style="color: var(--color-text-muted);">账户状态已更新为 CLOSED（销户）</p>
         <div style="margin-top: 24px; padding: 24px; max-width: 400px; margin-left: auto; margin-right: auto; border: 1px solid var(--color-border); text-align: left;">
           <p style="margin: 0 0 8px;"><strong>账户号：</strong>{{ accountInfo.fundAccountNo }}</p>
           <p style="margin: 0 0 8px;"><strong>投资者ID：</strong>{{ accountInfo.investorId }}</p>
-          <p style="margin: 0;"><strong>当前状态：</strong><AccountStatusTag status="CANCELLED" /></p>
+          <p style="margin: 0;"><strong>当前状态：</strong><AccountStatusTag status="CLOSED" /></p>
         </div>
       </div>
     </el-card>
@@ -79,17 +80,17 @@ const canCancel = computed(() => {
   if (!accountInfo.value) return false
   const status = accountInfo.value.accountStatus
   if (status !== AccountStatus.NORMAL) return false
-  if (accountInfo.value.balance > 0) return false
+  if (accountInfo.value.availableBalance > 0 || accountInfo.value.frozenAmount > 0) return false
   return true
 })
 
 const cancelDisabledReason = computed(() => {
   if (!accountInfo.value) return ''
   const status = accountInfo.value.accountStatus
-  if (status === AccountStatus.CANCELLED) return '账户已销户'
+  if (status === AccountStatus.CLOSED) return '账户已销户'
   if (status === AccountStatus.LOST) return '账户已挂失，请先补办后再注销'
   if (status === AccountStatus.FROZEN) return '账户已冻结，无法注销'
-  if (accountInfo.value.balance > 0) return `账户余额不为 0（¥ ${accountInfo.value.balance.toFixed(2)}），请先取款后再注销`
+  if (accountInfo.value.availableBalance > 0 || accountInfo.value.frozenAmount > 0) return '账户资金不为 0，请先转出/解冻后再注销'
   return ''
 })
 
@@ -125,7 +126,7 @@ const handleCancel = async () => {
       }
     )
     await cancelFundAccount(accountInfo.value.fundAccountNo)
-    accountInfo.value.accountStatus = AccountStatus.CANCELLED
+    accountInfo.value.accountStatus = AccountStatus.CLOSED
     step.value = 1
     ElMessage.success('注销成功')
   } catch (e) {
@@ -143,11 +144,4 @@ const resetForm = () => {
 </script>
 
 <style scoped>
-.btn-primary, .btn-secondary {
-  padding: 10px 28px;
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 0;
-  cursor: pointer;
-}
 </style>

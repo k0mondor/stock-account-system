@@ -3,7 +3,10 @@ import axios from 'axios'
 import { securitiesAccountList } from '@/mock/securities'
 import { fundAccountList, transactionList } from '@/mock/fund'
 import { associationList } from '@/mock/association'
-import { AccountStatus, ApplyStatus, ProcessStatus, TransactionStatus, TransactionType, OperationType } from '@/constants/enums'
+import { AccountStatus, AssociationStatus, TransactionStatus, TransactionType } from '@/constants/enums'
+import { changeFundPassword as changeFundPasswordHttp, getFundAccountByNo as getFundAccountByNoHttp, queryAssociations as queryAssociationsHttp } from '@/services/accountService'
+
+const dataSource = import.meta.env.VITE_DATA_SOURCE || 'mock'
 
 // 创建 axios 实例
 const request = axios.create({
@@ -34,6 +37,14 @@ function mockError(message, delay = 300) {
   return new Promise((_, reject) =>
     setTimeout(() => reject({ code: 400, message, data: null }), delay)
   )
+}
+
+function httpOk(data) {
+  return Promise.resolve({ code: 200, message: 'success', data })
+}
+
+function httpNotImplemented() {
+  return Promise.reject(new Error('后端接口未接入'))
 }
 
 // ==================== 证券账户接口 ====================
@@ -89,17 +100,22 @@ export function getFundAccounts(params) {
 }
 
 export function getFundAccountByNo(accountNo) {
+  if (dataSource === 'http') {
+    return getFundAccountByNoHttp(accountNo).then(httpOk)
+  }
   const item = fundAccountList.find(a => a.fundAccountNo === accountNo)
   return item ? mockRequest(item) : mockRequest(null)
 }
 
 export function openFundAccount(data) {
+  if (dataSource === 'http') return httpNotImplemented()
   const newAccountNo = 'FND' + String(Date.now()).slice(-8)
   const newAccount = {
     fundAccountNo: newAccountNo,
     investorId: data.investorId,
     bankCardNo: data.bankCardNo,
-    balance: 0.00,
+    availableBalance: 0.00,
+    frozenAmount: 0.00,
     accountStatus: AccountStatus.NORMAL,
     tradePwdDigest: 'hash_' + Date.now(),
     withdrawPwdDigest: 'hash_' + Date.now()
@@ -110,6 +126,7 @@ export function openFundAccount(data) {
 
 // 存款接口已扩展以接受 password 字段（可选），保持向后兼容
 export function deposit(data) {
+  if (dataSource === 'http') return httpNotImplemented()
   const account = fundAccountList.find(a => a.fundAccountNo === data.fundAccountNo)
   if (!account) return mockError('资金账户不存在')
   if (account.accountStatus !== AccountStatus.NORMAL) return mockError('账户状态异常，无法存款')
@@ -117,7 +134,7 @@ export function deposit(data) {
   // 若前端传递 password，则此处可进行安全校验（当前实现为直接忽略）
   // const password = data.password // 预留密码校验逻辑
 
-  account.balance += data.amount
+  account.availableBalance += data.amount
 
   // 生成流水
   const serialNo = 'SER' + String(Date.now()).slice(-8)
@@ -133,19 +150,20 @@ export function deposit(data) {
   }
   transactionList.push(tx)
 
-  return mockRequest({ balance: account.balance, serialNo })
+  return mockRequest({ availableBalance: account.availableBalance, serialNo })
 }
 
 export function withdraw(data) {
+  if (dataSource === 'http') return httpNotImplemented()
   const account = fundAccountList.find(a => a.fundAccountNo === data.fundAccountNo)
   if (!account) return mockError('资金账户不存在')
   if (account.accountStatus !== AccountStatus.NORMAL) return mockError('账户状态异常，无法取款')
-  if (account.balance < data.amount) return mockError('余额不足')
+  if (account.availableBalance < data.amount) return mockError('余额不足')
 
   // 模拟密码校验（实际应比对 digest）
   if (data.password !== '123456') return mockError('取款密码错误')
 
-  account.balance -= data.amount
+  account.availableBalance -= data.amount
 
   const serialNo = 'SER' + String(Date.now()).slice(-8)
   const tx = {
@@ -160,25 +178,28 @@ export function withdraw(data) {
   }
   transactionList.push(tx)
 
-  return mockRequest({ balance: account.balance, serialNo })
+  return mockRequest({ availableBalance: account.availableBalance, serialNo })
 }
 
 // ==================== 关联接口 ====================
 
 export function getAssociations(params) {
-  let list = [...associationList]
-  if (params?.securitiesAccountNo) {
-    list = list.filter(a => a.securitiesAccountNo === params.securitiesAccountNo)
+  if (dataSource === 'http') {
+    return queryAssociationsHttp(params).then(httpOk)
   }
+  let list = [...associationList]
+  if (params?.securitiesAccountNo) list = list.filter(a => a.securitiesAccountNo === params.securitiesAccountNo)
+  if (params?.fundAccountNo) list = list.filter(a => a.fundAccountNo === params.fundAccountNo)
   return mockRequest(list)
 }
 
 export function createAssociation(data) {
+  if (dataSource === 'http') return httpNotImplemented()
   const assoc = {
     associationId: 'ASSOC' + String(Date.now()).slice(-8),
     securitiesAccountNo: data.securitiesAccountNo,
     fundAccountNo: data.fundAccountNo,
-    associationStatus: 'LINKED',
+    associationStatus: AssociationStatus.ACTIVE,
     associationTime: new Date().toISOString()
   }
   associationList.push(assoc)
@@ -186,14 +207,18 @@ export function createAssociation(data) {
 }
 
 export function cancelSecuritiesAccount(accountNo) {
+  if (dataSource === 'http') return httpNotImplemented()
   const account = securitiesAccountList.find(a => a.securitiesAccountNo === accountNo)
   if (!account) return mockError('证券账户不存在')
   if (account.accountStatus !== AccountStatus.NORMAL) return mockError('仅正常状态的账户可注销')
-  account.accountStatus = AccountStatus.CANCELLED
-  return mockRequest({ securitiesAccountNo: accountNo, accountStatus: AccountStatus.CANCELLED })
+  account.accountStatus = AccountStatus.CLOSED
+  return mockRequest({ securitiesAccountNo: accountNo, accountStatus: AccountStatus.CLOSED })
 }
 
 export function changeFundPassword(data) {
+  if (dataSource === 'http') {
+    return changeFundPasswordHttp(data).then(() => httpOk({ fundAccountNo: data.fundAccountNo, status: 'SUCCESS' }))
+  }
   const account = fundAccountList.find(a => a.fundAccountNo === data.fundAccountNo)
   if (!account) return mockError('资金账户不存在')
   if (data.originalPassword !== '123456') return mockError('原密码错误')
@@ -202,12 +227,13 @@ export function changeFundPassword(data) {
 }
 
 export function cancelFundAccount(accountNo) {
+  if (dataSource === 'http') return httpNotImplemented()
   const account = fundAccountList.find(a => a.fundAccountNo === accountNo)
   if (!account) return mockError('资金账户不存在')
   if (account.accountStatus !== AccountStatus.NORMAL) return mockError('仅正常状态的账户可注销')
-  if (account.balance > 0) return mockError('账户余额不为0，请先取款后再注销')
-  account.accountStatus = AccountStatus.CANCELLED
-  return mockRequest({ fundAccountNo: accountNo, accountStatus: AccountStatus.CANCELLED })
+  if (account.availableBalance > 0 || account.frozenAmount > 0) return mockError('账户资金不为0，请先转出/解冻后再注销')
+  account.accountStatus = AccountStatus.CLOSED
+  return mockRequest({ fundAccountNo: accountNo, accountStatus: AccountStatus.CLOSED })
 }
 
 // 导出默认实例

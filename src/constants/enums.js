@@ -4,14 +4,14 @@ export const AccountStatus = {
   NORMAL: 'NORMAL',
   LOST: 'LOST',
   FROZEN: 'FROZEN',
-  CANCELLED: 'CANCELLED'
+  CLOSED: 'CLOSED'
 }
 
 export const AccountStatusLabel = {
   NORMAL: '正常',
   LOST: '挂失',
   FROZEN: '冻结',
-  CANCELLED: '销户'
+  CLOSED: '销户'
 }
 
 export const AccountType = {
@@ -49,7 +49,7 @@ export const ApprovalStatus = {
 }
 
 export const AssociationStatus = {
-  LINKED: 'LINKED',
+  ACTIVE: 'ACTIVE',
   UNLINKED: 'UNLINKED'
 }
 

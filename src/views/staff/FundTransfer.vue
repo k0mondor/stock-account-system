@@ -119,14 +119,14 @@ const handlePasswordConfirm = async () => {
         amount: form.value.amount,
         password: passwordForm.value.password
       })
-      ElMessage.success(`存款成功！当前余额：¥${res.data.balance.toFixed(2)}`)
+      ElMessage.success(`存款成功！当前可用资金：¥${res.data.availableBalance.toFixed(2)}`)
     } else {
       const res = await withdraw({
         fundAccountNo: form.value.fundAccountNo,
         amount: form.value.amount,
         password: passwordForm.value.password
       })
-      ElMessage.success(`取款成功！当前余额：¥${res.data.balance.toFixed(2)}`)
+      ElMessage.success(`取款成功！当前可用资金：¥${res.data.availableBalance.toFixed(2)}`)
     }
     // 成功后关闭弹窗并重置表单
     resetForm()
@@ -152,14 +152,6 @@ const resetForm = () => {
 </script>
 
 <style scoped>
-.btn-primary, .btn-secondary {
-  padding: 10px 28px;
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 0;
-  cursor: pointer;
-}
-
 :deep(input::-webkit-outer-spin-button),
 :deep(input::-webkit-inner-spin-button) {
   -webkit-appearance: none !important;

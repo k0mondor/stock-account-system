@@ -28,7 +28,8 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             <div><strong>账户号：</strong>{{ accountInfo.fundAccountNo }}</div>
             <div><strong>投资者ID：</strong>{{ accountInfo.investorId }}</div>
-            <div><strong>余额：</strong>¥ {{ accountInfo.balance.toFixed(2) }}</div>
+            <div><strong>可用资金：</strong>¥ {{ accountInfo.availableBalance.toFixed(2) }}</div>
+            <div><strong>冻结资金：</strong>¥ {{ accountInfo.frozenAmount.toFixed(2) }}</div>
             <div><strong>状态：</strong><AccountStatusTag :status="accountInfo.accountStatus" /></div>
           </div>
           <div style="margin-top: 24px; text-align: center;">
@@ -55,7 +56,8 @@
         <div v-if="newAccount" style="margin-top: 32px; padding: 24px; border: 2px solid #000; text-align: left;">
           <h4 style="margin: 0 0 16px; color: #000;">补办成功！新账户信息</h4>
           <p><strong>新资金账户号：</strong><span style="font-size: 18px; font-weight: 600;">{{ newAccount.fundAccountNo }}</span></p>
-          <p><strong>复制余额：</strong>¥ {{ newAccount.balance.toFixed(2) }}</p>
+          <p><strong>复制可用资金：</strong>¥ {{ newAccount.availableBalance.toFixed(2) }}</p>
+          <p><strong>复制冻结资金：</strong>¥ {{ newAccount.frozenAmount.toFixed(2) }}</p>
           <p><strong>新密码：</strong>{{ newPassword || '123456' }}</p>
           <p><strong>状态：</strong>正常</p>
         </div>
@@ -118,8 +120,9 @@ const handleReissue = async () => {
       bankCardNo: accountInfo.value.bankCardNo || '6222021234567890'
     })
     newAccount.value = res.data.account
-    newAccount.value.balance = accountInfo.value.balance
-    ElMessage.success(`补办成功！新账户号：${newAccount.value.fundAccountNo}，余额已复制`)
+    newAccount.value.availableBalance = accountInfo.value.availableBalance
+    newAccount.value.frozenAmount = accountInfo.value.frozenAmount
+    ElMessage.success(`补办成功！新账户号：${newAccount.value.fundAccountNo}，资金已复制`)
   } catch (e) {
     ElMessage.error('补办失败')
   }
@@ -135,11 +138,4 @@ const resetForm = () => {
 </script>
 
 <style scoped>
-.btn-primary, .btn-secondary {
-  padding: 10px 28px;
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 0;
-  cursor: pointer;
-}
 </style>
