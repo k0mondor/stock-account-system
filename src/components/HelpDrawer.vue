@@ -8,57 +8,57 @@
     <div class="help-shell">
       <div class="help-top">
         <div>
-          <div class="help-title">帮助</div>
-          <div class="help-subtitle">快捷键与规则速览</div>
+          <div class="help-title"><BiText :text="UiText.help" /></div>
+          <div class="help-subtitle"><BiText text="快捷键与规则速览/SHORTCUTS & RULES" /></div>
         </div>
-        <el-button class="btn-secondary" @click="emit('update:modelValue', false)">关闭</el-button>
+        <el-button class="btn-secondary" @click="emit('update:modelValue', false)"><BiText text="关闭/CLOSE" /></el-button>
       </div>
 
       <div class="help-section">
-        <div class="help-h">快捷键</div>
+        <div class="help-h"><BiText text="快捷键/SHORTCUTS" /></div>
         <div class="help-list">
           <div class="help-item">
-            <span>打开/关闭帮助</span>
+            <BiText text="打开或关闭帮助/TOGGLE HELP" />
             <span class="kbd">?</span>
           </div>
           <div class="help-item">
-            <span>关闭面板</span>
+            <BiText text="关闭面板/CLOSE" />
             <span class="kbd">Esc</span>
           </div>
         </div>
       </div>
 
       <div class="help-section">
-        <div class="help-h">账户状态</div>
+        <div class="help-h"><BiText text="账户状态/STATUS" /></div>
         <div class="help-list">
           <div class="help-item">
             <span class="mono">NORMAL</span>
-            <span>正常</span>
+            <BiText text="正常/NORMAL" />
           </div>
           <div class="help-item">
             <span class="mono">LOST</span>
-            <span>挂失</span>
+            <BiText text="挂失/LOST" />
           </div>
           <div class="help-item">
             <span class="mono">FROZEN</span>
-            <span>冻结</span>
+            <BiText text="冻结/FROZEN" />
           </div>
           <div class="help-item">
             <span class="mono">CLOSED</span>
-            <span>销户</span>
+            <BiText text="销户/CLOSED" />
           </div>
         </div>
       </div>
 
       <div class="help-section">
-        <div class="help-h">数据源</div>
+        <div class="help-h"><BiText text="数据源/DATA SOURCE" /></div>
         <div class="help-list">
           <div class="help-item">
-            <span>当前数据源</span>
+            <BiText text="当前数据源/CURRENT" />
             <span class="mono">{{ dataSource }}</span>
           </div>
           <div class="help-item">
-            <span>切换方式</span>
+            <BiText text="切换方式/ENV" />
             <span class="mono">VITE_DATA_SOURCE</span>
           </div>
         </div>
@@ -72,6 +72,9 @@
 </template>
 
 <script setup>
+import { UiText } from '@/constants/i18n'
+import BiText from '@/components/BiText.vue'
+
 const props = defineProps({
   modelValue: {
     type: Boolean,
@@ -164,4 +167,3 @@ const dataSource = import.meta.env.VITE_DATA_SOURCE || 'mock'
   line-height: 1.6;
 }
 </style>
-

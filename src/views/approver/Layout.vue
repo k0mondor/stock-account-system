@@ -3,24 +3,24 @@
   <div>
     <el-container style="min-height: 100vh;">
       <el-aside width="220px" style="background: #f5f5f5; border-right: 1px solid var(--color-gray-200);">
-        <div class="logo">账户业务子系统</div>
+        <div class="logo"><BiText text="账户业务子系统/ACCOUNT" /></div>
         <el-menu
           :default-active="$route.path"
           router
           style="border-right: none;"
         >
-          <el-menu-item index="/approver/approval">审批列表</el-menu-item>
-          <el-menu-item index="/approver/log">操作日志</el-menu-item>
+          <el-menu-item index="/approver/approval"><BiText :text="UiText.approvalList" /></el-menu-item>
+          <el-menu-item index="/approver/log"><BiText :text="UiText.operationLog" /></el-menu-item>
         </el-menu>
       </el-aside>
       <el-container>
         <el-header style="border-bottom: 1px solid #e5e4e7; display: flex; align-items: center; justify-content: space-between; padding: 0 24px;">
-          <span style="color: var(--color-gray-500);">审批人员界面</span>
+        <span style="color: var(--color-gray-500);"><BiText :text="UiText.approverArea" /></span>
           <div style="display: flex; align-items: center; gap: 10px;">
-            <el-button link @click="helpVisible = true" aria-label="帮助">
+            <el-button link @click="helpVisible = true" :aria-label="UiText.help">
               <el-icon><QuestionFilled /></el-icon>
             </el-button>
-            <el-button class="btn-secondary" @click="logout">退出</el-button>
+            <el-button class="btn-secondary" @click="logout"><BiText :text="UiText.logout" /></el-button>
           </div>
         </el-header>
         <el-main style="background: #f8f9fa; padding: 40px 24px;">
@@ -40,6 +40,8 @@ import { useRouter } from 'vue-router'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { QuestionFilled } from '@element-plus/icons-vue'
 import HelpDrawer from '@/components/HelpDrawer.vue'
+import { UiText } from '@/constants/i18n'
+import BiText from '@/components/BiText.vue'
 
 const router = useRouter()
 const logout = () => router.push('/login')

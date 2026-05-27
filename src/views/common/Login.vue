@@ -29,10 +29,10 @@
         
         <div class="role-select">
           <button class="btn-primary" @click="loginAsStaff">
-            工作人员入口
+            <BiText :text="UiText.staffEntry" layout="stack" />
           </button>
           <button class="btn-secondary" @click="loginAsApprover">
-            审批人员入口
+            <BiText :text="UiText.approverEntry" layout="stack" />
           </button>
         </div>
         
@@ -45,6 +45,8 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import { UiText } from '@/constants/i18n'
+import BiText from '@/components/BiText.vue'
 
 const router = useRouter()
 
