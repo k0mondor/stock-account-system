@@ -233,39 +233,9 @@ const loginAsApprover = () => {
   margin-bottom: 24px;
 }
 
-.btn-primary {
+.role-select .btn-primary,
+.role-select .btn-secondary {
   flex: 1;
-  padding: 14px 0;
-  background: #000000 !important;
-  color: #FFFFFF !important;
-  font-size: 14px;
-  font-weight: 600;
-  border: 1px solid #000000 !important;
-  border-radius: 0px !important;
-  cursor: pointer;
-  letter-spacing: 0.05em;
-  transition: background-color 0.15s ease-in-out !important;
-}
-.btn-primary:hover {
-  background: #222222 !important;
-}
-
-.btn-secondary {
-  flex: 1;
-  padding: 14px 0;
-  background: #FFFFFF !important;
-  color: #000000 !important;
-  font-size: 14px;
-  font-weight: 600;
-  border: 2px solid #000000 !important;
-  border-radius: 0px !important;
-  cursor: pointer;
-  letter-spacing: 0.05em;
-  transition: all 0.15s ease-in-out !important;
-}
-.btn-secondary:hover {
-  background: #000000 !important;
-  color: #FFFFFF !important;
 }
 
 .tip {
