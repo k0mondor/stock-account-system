@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.db.session import Base, engine
-from app.routers import base_data, health
+from app.routers import application, base_data, health
 
 Base.metadata.create_all(bind=engine)
 
@@ -23,3 +23,4 @@ app.add_middleware(
 
 app.include_router(health.router, prefix=settings.api_prefix, tags=["health"])
 app.include_router(base_data.router, prefix=settings.api_prefix, tags=["base-data"])
+app.include_router(application.router, prefix=settings.api_prefix, tags=["applications"])
