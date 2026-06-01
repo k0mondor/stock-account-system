@@ -8,5 +8,7 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
-  }
+  },
+  // 自动加载 .env 文件
+  envPrefix: 'VITE_'
 })
