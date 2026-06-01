@@ -21,10 +21,15 @@
 - `account_associations`
 - `operation_logs`
 
-当前已落地组长负责的基础表：`customers`、`staff`。
+当前已落地：
+
+- 基础表：`customers`、`staff`
+- 开户申请与审批表：`account_applications`、`approval_records`
 
 ## 统一枚举
 
 - 账户状态：`NORMAL`、`FROZEN`、`LOST`、`CLOSED`
 - 资金账户密码类型：`TRADE`、`WITHDRAW`
 - 账户关联状态：`ACTIVE`、`UNLINKED`
+- 开户申请状态：`SUBMITTED`、`CANCELLED`
+- 开户处理状态：`PENDING`、`APPROVED`、`REJECTED`、`COMPLETED`
