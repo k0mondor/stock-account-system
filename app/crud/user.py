@@ -49,6 +49,14 @@ def get_user_by_username(db: Session, username: str) -> InvestorUser | None:
     ).first()
 
 
+def get_user_by_id_card(db: Session, id_card: str) -> InvestorUser | None:
+    """通过身份证号获取用户"""
+    return db.query(InvestorUser).filter(
+        InvestorUser.id_card == id_card,
+        InvestorUser.is_active == True,
+    ).first()
+
+
 def verify_user_password(
     db: Session,
     investor_id: str,

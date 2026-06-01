@@ -10,8 +10,8 @@ class SecurityAccount(Base):
     """证券账户表"""
     __tablename__ = "security_accounts"
     __table_args__ = (
-        Index('idx_investor_id', 'investor_id'),
-        Index('idx_account_status', 'status'),
+        Index('idx_security_investor_id', 'investor_id'),
+        Index('idx_security_account_status', 'status'),
     )
     
     # 主键

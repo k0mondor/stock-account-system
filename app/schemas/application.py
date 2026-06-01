@@ -59,8 +59,8 @@ class ApprovalResponse(BaseModel):
     status: str = Field(..., description="申请状态")
     fund_account_id: Optional[str] = Field(None, description="资金账户号")
     security_account_id: Optional[str] = Field(None, description="证券账户号")
-    approval_reason: str = Field(..., description="审批意见")
-    approval_at: datetime = Field(..., description="审批时间")
+    approval_reason: Optional[str] = Field(None, description="审批意见")
+    approval_at: Optional[datetime] = Field(None, description="审批时间")
 
 
 class ApprovalHistoryItem(BaseModel):

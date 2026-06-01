@@ -1,21 +1,71 @@
 """账户申请API"""
 
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, timezone
+from typing import Any, Optional
+
 from fastapi import APIRouter, Depends, Header, Query
 from sqlalchemy.orm import Session
+
 from app.database import get_db
 from app.schemas import (
-    AccountApplicationSubmitRequest,
     AccountApplicationResponse,
-    ApplicationQueryRequest,
+    AccountApplicationSubmitRequest,
+    ApprovalHistoryResponse,
     ApprovalRequest,
     ApprovalResponse,
-    ApprovalHistoryResponse,
 )
 from app.services import application_service
+from app.utils.exceptions import (
+    BadRequestException,
+    ConflictException,
+    NotFoundException,
+)
 
 router = APIRouter(prefix="/api/v1/account/applications", tags=["application"])
+
+
+def _timestamp() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _success(data: Any, message: str, request_id: Optional[str] = None) -> dict:
+    body = {
+        "success": True,
+        "data": data,
+        "code": 0,
+        "message": message,
+        "timestamp": _timestamp(),
+    }
+    if request_id:
+        body["request_id"] = request_id
+    return body
+
+
+def _failure(
+    message: str,
+    code: int,
+    request_id: Optional[str] = None,
+) -> dict:
+    body = {
+        "success": False,
+        "data": None,
+        "code": code,
+        "message": message,
+        "timestamp": _timestamp(),
+    }
+    if request_id:
+        body["request_id"] = request_id
+    return body
+
+
+def _handle_service_error(exc: Exception, request_id: Optional[str] = None) -> dict:
+    if isinstance(exc, NotFoundException):
+        return _failure(str(exc.detail), 40401, request_id)
+    if isinstance(exc, ConflictException):
+        return _failure(str(exc.detail), 40900, request_id)
+    if isinstance(exc, BadRequestException):
+        return _failure(str(exc.detail), 40001, request_id)
+    return _failure(str(exc), 50001, request_id)
 
 
 @router.post("/submit", response_model=dict)
@@ -34,21 +84,13 @@ async def submit_application(
             request.phone,
             request.email,
         )
-        return {
-            "success": True,
-            "data": AccountApplicationResponse(**data),
-            "code": 0,
-            "message": "申请提交成功",
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        return _success(
+            AccountApplicationResponse(**data).model_dump(),
+            "申请提交成功",
+            x_request_id,
+        )
     except Exception as e:
-        return {
-            "success": False,
-            "data": None,
-            "code": 40001,
-            "message": str(e),
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        return _handle_service_error(e, x_request_id)
 
 
 @router.get("/query", response_model=dict)
@@ -69,21 +111,10 @@ async def query_applications(
             id_card=id_card,
             status=status,
         )
-        return {
-            "success": True,
-            "data": [AccountApplicationResponse(**item) for item in data],
-            "code": 0,
-            "message": "查询成功",
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        items = [AccountApplicationResponse(**item).model_dump() for item in data]
+        return _success(items, "查询成功", x_request_id)
     except Exception as e:
-        return {
-            "success": False,
-            "data": None,
-            "code": 40001,
-            "message": str(e),
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        return _handle_service_error(e, x_request_id)
 
 
 @router.get("/{application_id}", response_model=dict)
@@ -99,28 +130,14 @@ async def get_application_detail(
             application_id=application_id,
         )
         if not data:
-            return {
-                "success": False,
-                "data": None,
-                "code": 40401,
-                "message": "申请不存在",
-                "timestamp": datetime.utcnow().isoformat(),
-            }
-        return {
-            "success": True,
-            "data": AccountApplicationResponse(**data[0]),
-            "code": 0,
-            "message": "查询成功",
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+            return _failure("申请不存在", 40401, x_request_id)
+        return _success(
+            AccountApplicationResponse(**data[0]).model_dump(),
+            "查询成功",
+            x_request_id,
+        )
     except Exception as e:
-        return {
-            "success": False,
-            "data": None,
-            "code": 40001,
-            "message": str(e),
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        return _handle_service_error(e, x_request_id)
 
 
 @router.post("/approve", response_model=dict)
@@ -130,16 +147,10 @@ async def approve_application(
     x_request_id: Optional[str] = Header(None),
 ):
     """审批通过申请"""
+    if request.action != "APPROVE":
+        return _failure("操作类型错误", 40001, x_request_id)
+
     try:
-        if request.action != "APPROVE":
-            return {
-                "success": False,
-                "data": None,
-                "code": 40001,
-                "message": "操作类型错误",
-                "timestamp": datetime.utcnow().isoformat(),
-            }
-        
         data = application_service.approve_application(
             db,
             request.application_id,
@@ -147,21 +158,13 @@ async def approve_application(
             request.approver_name,
             request.reason,
         )
-        return {
-            "success": True,
-            "data": ApprovalResponse(**data),
-            "code": 0,
-            "message": "审批通过成功，账户已创建",
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        return _success(
+            ApprovalResponse(**data).model_dump(),
+            "审批通过成功，账户已创建",
+            x_request_id,
+        )
     except Exception as e:
-        return {
-            "success": False,
-            "data": None,
-            "code": 50001,
-            "message": str(e),
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        return _handle_service_error(e, x_request_id)
 
 
 @router.post("/reject", response_model=dict)
@@ -171,16 +174,10 @@ async def reject_application(
     x_request_id: Optional[str] = Header(None),
 ):
     """拒绝申请"""
+    if request.action != "REJECT":
+        return _failure("操作类型错误", 40001, x_request_id)
+
     try:
-        if request.action != "REJECT":
-            return {
-                "success": False,
-                "data": None,
-                "code": 40001,
-                "message": "操作类型错误",
-                "timestamp": datetime.utcnow().isoformat(),
-            }
-        
         data = application_service.reject_application(
             db,
             request.application_id,
@@ -188,21 +185,13 @@ async def reject_application(
             request.approver_name,
             request.reason,
         )
-        return {
-            "success": True,
-            "data": ApprovalResponse(**data),
-            "code": 0,
-            "message": "申请已拒绝",
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        return _success(
+            ApprovalResponse(**data).model_dump(),
+            "申请已拒绝",
+            x_request_id,
+        )
     except Exception as e:
-        return {
-            "success": False,
-            "data": None,
-            "code": 50001,
-            "message": str(e),
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        return _handle_service_error(e, x_request_id)
 
 
 @router.get("/{application_id}/approval-history", response_model=dict)
@@ -214,18 +203,10 @@ async def get_approval_history(
     """获取审批历史"""
     try:
         data = application_service.get_approval_history(db, application_id)
-        return {
-            "success": True,
-            "data": ApprovalHistoryResponse(**data),
-            "code": 0,
-            "message": "查询成功",
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        return _success(
+            ApprovalHistoryResponse(**data).model_dump(),
+            "查询成功",
+            x_request_id,
+        )
     except Exception as e:
-        return {
-            "success": False,
-            "data": None,
-            "code": 40001,
-            "message": str(e),
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        return _handle_service_error(e, x_request_id)

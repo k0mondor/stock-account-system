@@ -11,8 +11,8 @@ class FundAccount(Base):
     """资金账户表"""
     __tablename__ = "fund_accounts"
     __table_args__ = (
-        Index('idx_investor_id', 'investor_id'),
-        Index('idx_account_status', 'status'),
+        Index('idx_fund_investor_id', 'investor_id'),
+        Index('idx_fund_account_status', 'status'),
     )
     
     # 主键

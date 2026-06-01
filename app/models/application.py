@@ -17,9 +17,9 @@ class AccountApplication(Base):
     """账户开户申请表"""
     __tablename__ = "account_applications"
     __table_args__ = (
-        Index('idx_investor_id', 'investor_id'),
-        Index('idx_status', 'status'),
-        Index('idx_created_at', 'created_at'),
+        Index('idx_app_investor_id', 'investor_id'),
+        Index('idx_app_status', 'status'),
+        Index('idx_app_created_at', 'created_at'),
     )
     
     # 主键
@@ -63,8 +63,8 @@ class ApprovalHistory(Base):
     """审批历史记录表"""
     __tablename__ = "approval_histories"
     __table_args__ = (
-        Index('idx_application_id', 'application_id'),
-        Index('idx_created_at', 'created_at'),
+        Index('idx_approval_application_id', 'application_id'),
+        Index('idx_approval_created_at', 'created_at'),
     )
     
     # 主键

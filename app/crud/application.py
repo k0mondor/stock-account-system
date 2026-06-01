@@ -1,8 +1,14 @@
 """账户申请数据访问层"""
 
+from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
 from app.models import AccountApplication, ApprovalHistory
+
+
+def set_application_approval_time(application: AccountApplication) -> None:
+    """设置审批时间为当前 UTC 时间"""
+    application.approval_at = datetime.now(timezone.utc)
 
 
 def create_application(
@@ -76,6 +82,30 @@ def query_applications(
     return query.order_by(AccountApplication.created_at.desc()).all()
 
 
+def resubmit_application(
+    db: Session,
+    application: AccountApplication,
+    real_name: str,
+    phone: str,
+    email: str,
+) -> AccountApplication:
+    """被拒绝的申请重新提交"""
+    application.real_name = real_name
+    application.phone = phone
+    application.email = email
+    application.status = "PENDING"
+    application.investor_id = None
+    application.fund_account_id = None
+    application.security_account_id = None
+    application.approver_id = None
+    application.approver_name = None
+    application.approval_reason = None
+    application.approval_at = None
+    db.commit()
+    db.refresh(application)
+    return application
+
+
 def update_application_approval(
     db: Session,
     application_id: str,
@@ -112,9 +142,7 @@ def update_application_approval(
     if approval_reason:
         application.approval_reason = approval_reason
     
-    # 设置审批时间
-    from datetime import datetime
-    application.approval_at = datetime.utcnow()
+    set_application_approval_time(application)
     
     db.commit()
     db.refresh(application)
