@@ -1,11 +1,21 @@
 import axios from 'axios'
+import { mockInterceptor } from './mockInterceptor'
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || ''
+const useMock = import.meta.env.VITE_USE_MOCK === 'true'
 
 export const httpClient = axios.create({
   baseURL,
   timeout: 10000
 })
+
+// 如果启用 Mock，添加 Mock 拦截器
+if (useMock) {
+  httpClient.interceptors.request.use(
+    config => mockInterceptor(config),
+    error => Promise.reject(error)
+  )
+}
 
 httpClient.interceptors.request.use(config => {
   const token = localStorage.getItem('token')

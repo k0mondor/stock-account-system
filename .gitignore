@@ -34,7 +34,6 @@ htmlcov/
 
 # Editor directories and files
 .vscode/*
-!.vscode/extensions.json
 .idea
 .DS_Store
 *.suo
@@ -42,3 +41,18 @@ htmlcov/
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files (local configs)
+.env
+.env.local
+.env.*.local
+
+# Backend related (if co-located)
+backend/node_modules
+backend/dist
+backend/.env
+backend/.env.local
+
+# OS files
+Thumbs.db
+.DS_Store
