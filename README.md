@@ -24,8 +24,12 @@
 - Vue Router 4
 - Element Plus + @element-plus/icons-vue
 - Axios
+- Python + FastAPI（后端，目录：`backend/`）
+- SQLAlchemy + MySQL / SQLite（数据库）
 
 ## 本地运行
+
+### 前端
 
 ```bash
 npm install
@@ -37,6 +41,19 @@ npm run dev
 ```bash
 npm run build
 ```
+
+### 后端
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+uvicorn app.main:app --reload --port 8000
+```
+
+后端 API 文档：http://localhost:8000/docs
 
 ## 环境变量
 
@@ -100,6 +117,8 @@ npm run build
 ## 目录结构
 
 ```text
+backend/              # Python FastAPI 后端
+database/             # 数据库规范、schema、测试数据
 src/
   api/                # httpClient + endpoint 封装
   services/           # 字段映射/格式转换
@@ -121,3 +140,10 @@ src/
 
 - `接口V2_修正版(3).md`
 
+## 开发分工
+
+- 组长：基础数据、仓库整合、接口联调、数据库规范
+- A：开户申请与审批
+- B：证券账户和资金账户管理
+- C：账户关联与日志审计
+- D：Vue3 前端页面与联调
