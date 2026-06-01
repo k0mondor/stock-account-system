@@ -17,17 +17,17 @@ class FundAccount(Base):
     # 投资者编号
     investor_id: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     # 绑定的银行卡号
-    bank_card_number: Mapped[str] = mapped_column(String(32), nullable=False)
+    bank_card_no: Mapped[str] = mapped_column(String(32), nullable=False)
     # 交易密码 (哈希预留长字段)
     trade_password_hash: Mapped[str] = mapped_column(String(256), nullable=True)
     # 取款密码 (哈希预留)
     withdraw_password_hash: Mapped[str] = mapped_column(String(256), nullable=True)
     # 可用资金 (默认 0, 使用 Decimal(18,2))
-    available_funds: Mapped[Decimal] = mapped_column(Numeric(18, 2), default=Decimal("0.00"))
+    available_balance: Mapped[Decimal] = mapped_column(Numeric(18, 2), default=Decimal("0.00"))
     # 冻结资金 (默认 0)
-    frozen_funds: Mapped[Decimal] = mapped_column(Numeric(18, 2), default=Decimal("0.00"))
+    frozen_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), default=Decimal("0.00"))
     # 总资金 (默认 0)
-    total_funds: Mapped[Decimal] = mapped_column(Numeric(18, 2), default=Decimal("0.00"))
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), default=Decimal("0.00"))
     # 账户状态
     account_status: Mapped[str] = mapped_column(
         String(16), default=AccountStatus.NORMAL.value, index=True

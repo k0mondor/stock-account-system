@@ -25,7 +25,7 @@ def create_fund_account(
 
     - **fund_account_id**: 资金账户号（唯一主键）
     - **investor_id**: 投资者编号
-    - **bank_card_number**: 绑定的银行卡号
+    - **bank_card_no**: 绑定的银行卡号
 
     账户创建时：
     - 可用资金、冻结资金、总资金均初始化为 0
@@ -45,7 +45,7 @@ def create_fund_account(
     fund_account = FundAccount(
         fund_account_id=request.fund_account_id,
         investor_id=request.investor_id,
-        bank_card_number=request.bank_card_number,
+        bank_card_no=request.bank_card_no,
     )
     db.add(fund_account)
     db.commit()

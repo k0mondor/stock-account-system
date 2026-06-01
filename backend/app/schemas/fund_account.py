@@ -19,7 +19,7 @@ class FundAccountCreateRequest(OrmModel):
         examples=["INVESTOR001"],
         description="投资者编号"
     )
-    bank_card_number: str = Field(
+    bank_card_no: str = Field(
         ..., min_length=8, max_length=32,
         examples=["6222021234567890123"],
         description="绑定的银行卡号"
@@ -30,10 +30,10 @@ class FundAccountResponse(OrmModel):
     """资金账户 - 响应结构"""
     fund_account_id: str
     investor_id: str
-    bank_card_number: str
-    available_funds: Decimal = Decimal("0.00")
-    frozen_funds: Decimal = Decimal("0.00")
-    total_funds: Decimal = Decimal("0.00")
+    bank_card_no: str
+    available_balance: Decimal = Decimal("0.00")
+    frozen_amount: Decimal = Decimal("0.00")
+    total_amount: Decimal = Decimal("0.00")
     account_status: AccountStatus
     created_at: datetime
     updated_at: datetime

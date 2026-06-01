@@ -5,14 +5,9 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.core.config import settings
 
-# MySQL + PyMySQL 配置
-engine = create_engine(
-    settings.database_url,
-    pool_size=10,
-    max_overflow=20,
-    pool_recycle=3600,
-    pool_pre_ping=True,
-)
+# 根据数据库类型配置连接参数
+connect_args = {} if not settings.database_url.startswith("sqlite") else {"check_same_thread": False}
+engine = create_engine(settings.database_url, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
