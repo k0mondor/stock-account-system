@@ -68,3 +68,16 @@ CREATE TABLE IF NOT EXISTS fund_accounts (
 
 CREATE INDEX idx_fund_accounts_investor ON fund_accounts (investor_id);
 CREATE INDEX idx_fund_accounts_status ON fund_accounts (account_status);
+
+CREATE TABLE IF NOT EXISTS fund_transaction_records (
+    transaction_id VARCHAR(64) PRIMARY KEY,
+    fund_account_id VARCHAR(32) NOT NULL,
+    business_order_id VARCHAR(64),
+    transaction_type VARCHAR(16) NOT NULL,
+    amount DECIMAL(18, 2) NOT NULL,
+    reason VARCHAR(256),
+    occurred_at DATETIME NOT NULL
+);
+
+CREATE INDEX idx_fund_transaction_account_time
+ON fund_transaction_records (fund_account_id, occurred_at);

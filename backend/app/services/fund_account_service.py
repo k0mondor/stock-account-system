@@ -24,6 +24,5 @@ def create_fund_account(
         bank_card_no=bank_card_no,
     )
     db.add(fund_account)
-    db.commit()
-    db.refresh(fund_account)
+    db.flush()
     return fund_account
