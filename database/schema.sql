@@ -51,3 +51,33 @@ CREATE TABLE IF NOT EXISTS approval_records (
 CREATE INDEX idx_applications_customer ON account_applications (customer_id);
 CREATE INDEX idx_applications_status ON account_applications (app_status, proc_status);
 CREATE INDEX idx_approval_records_application ON approval_records (application_id);
+
+CREATE TABLE IF NOT EXISTS fund_accounts (
+    fund_account_id VARCHAR(32) PRIMARY KEY,
+    investor_id VARCHAR(32) NOT NULL,
+    bank_card_no VARCHAR(32) NOT NULL,
+    trade_password_hash VARCHAR(256),
+    withdraw_password_hash VARCHAR(256),
+    available_balance DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+    frozen_amount DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+    total_amount DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+    account_status VARCHAR(16) NOT NULL DEFAULT 'NORMAL',
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL
+);
+
+CREATE INDEX idx_fund_accounts_investor ON fund_accounts (investor_id);
+CREATE INDEX idx_fund_accounts_status ON fund_accounts (account_status);
+
+CREATE TABLE IF NOT EXISTS fund_transaction_records (
+    transaction_id VARCHAR(64) PRIMARY KEY,
+    fund_account_id VARCHAR(32) NOT NULL,
+    business_order_id VARCHAR(64),
+    transaction_type VARCHAR(16) NOT NULL,
+    amount DECIMAL(18, 2) NOT NULL,
+    reason VARCHAR(256),
+    occurred_at DATETIME NOT NULL
+);
+
+CREATE INDEX idx_fund_transaction_account_time
+ON fund_transaction_records (fund_account_id, occurred_at);

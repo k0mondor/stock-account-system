@@ -22,6 +22,20 @@ cp .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
+### 联调 MySQL 配置（如需使用 MySQL）
+
+修改 `.env` 文件中的 `DATABASE_URL`：
+
+```env
+DATABASE_URL=mysql+pymysql://root:your_password@127.0.0.1:3306/stock_account_db?charset=utf8mb4
+```
+
+确保数据库已创建：
+
+```sql
+CREATE DATABASE IF NOT EXISTS stock_account_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
 Windows 激活虚拟环境：
 
 ```bash

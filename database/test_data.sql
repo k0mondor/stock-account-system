@@ -51,3 +51,25 @@ INSERT INTO account_applications (
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
 );
+
+INSERT INTO fund_accounts (
+    fund_account_id,
+    investor_id,
+    bank_card_no,
+    available_balance,
+    frozen_amount,
+    total_amount,
+    account_status,
+    created_at,
+    updated_at
+) VALUES (
+    'FUND000001',
+    'CUST000001',
+    '6222021234567890123',
+    0.00,
+    0.00,
+    0.00,
+    'NORMAL',
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+);
