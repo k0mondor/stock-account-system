@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.core.config import settings
 from app.db.session import Base, engine
-from app.routers import base_data, health
+from app.routers import application, base_data, health
 from app.routers.fund_account import router as fund_account_router
 
 Base.metadata.create_all(bind=engine)
@@ -49,4 +49,5 @@ app.add_middleware(
 
 app.include_router(health.router, prefix=settings.api_prefix, tags=["health"])
 app.include_router(base_data.router, prefix=settings.api_prefix, tags=["base-data"])
+app.include_router(application.router, prefix=settings.api_prefix, tags=["applications"])
 app.include_router(fund_account_router, prefix=f"{settings.api_prefix}/fund-accounts", tags=["fund-account"])

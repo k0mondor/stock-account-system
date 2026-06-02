@@ -32,3 +32,20 @@ class PasswordType(StrEnum):
 class AssociationStatus(StrEnum):
     ACTIVE = "ACTIVE"
     UNLINKED = "UNLINKED"
+
+
+class ApplicationStatus(StrEnum):
+    SUBMITTED = "SUBMITTED"
+    CANCELLED = "CANCELLED"
+
+
+class ProcessStatus(StrEnum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    COMPLETED = "COMPLETED"
+
+
+class ApprovalResult(StrEnum):
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"

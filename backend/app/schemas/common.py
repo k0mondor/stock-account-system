@@ -42,3 +42,8 @@ class ApiResponse(BaseModel, Generic[T]):
 class OrmModel(BaseModel):
     """SQLAlchemy 模型转 Pydantic 用的配置 Mixin"""
     model_config = ConfigDict(from_attributes=True)
+
+
+# 兼容旧代码的快捷函数
+def ok(data=None, message="success"):
+    return ApiResponse.ok(data=data, message=message)

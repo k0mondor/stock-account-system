@@ -22,6 +22,20 @@ cp .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
+### 联调 MySQL 配置（如需使用 MySQL）
+
+修改 `.env` 文件中的 `DATABASE_URL`：
+
+```env
+DATABASE_URL=mysql+pymysql://root:your_password@127.0.0.1:3306/stock_account_db?charset=utf8mb4
+```
+
+确保数据库已创建：
+
+```sql
+CREATE DATABASE IF NOT EXISTS stock_account_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
 Windows 激活虚拟环境：
 
 ```bash
@@ -41,5 +55,7 @@ Windows 激活虚拟环境：
 - 数据库连接配置
 - `Customer`、`Staff`、`Approver` 基础模型
 - 客户/工作人员基础查询与创建接口
+- `AccountApplication`、`ApprovalRecord` 开户申请与审批模型
+- 开户申请提交、查询、审批通过、审批拒绝、审批记录查询接口
 
-后续 A/B/C 在此结构下继续补充开户申请、账户管理、账户关联与日志模块。
+后续 B/C 在此结构下继续补充账户管理、账户关联与日志模块。
