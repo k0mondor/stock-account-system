@@ -75,42 +75,9 @@ export const OperationType = {
   WITHDRAW: 'WITHDRAW',
   CHANGE_PWD: 'CHANGE_PWD',
   LINK: 'LINK',
-  UNLINK: 'UNLINK',
   APPROVE: 'APPROVE',
-  REJECT: 'REJECT',
   STATUS_CHANGE: 'STATUS_CHANGE',
   ID_VERIFY: 'ID_VERIFY'
-}
-
-export const OperationTypeLabel = {
-  OPEN_ACCOUNT: '开户',
-  LOST: '挂失',
-  REISSUE: '补办',
-  CANCEL: '注销',
-  QUERY: '查询',
-  DEPOSIT: '存款',
-  WITHDRAW: '取款',
-  CHANGE_PWD: '修改密码',
-  LINK: '账户关联',
-  UNLINK: '解除关联',
-  APPROVE: '审批通过',
-  REJECT: '审批拒绝',
-  STATUS_CHANGE: '状态变更',
-  ID_VERIFY: '身份核验'
-}
-
-export const TargetType = {
-  FUND: 'FUND',
-  SECURITIES: 'SECURITIES',
-  ASSOCIATION: 'ASSOCIATION',
-  APPLICATION: 'APPLICATION'
-}
-
-export const TargetTypeLabel = {
-  FUND: '资金账户',
-  SECURITIES: '证券账户',
-  ASSOCIATION: '账户关联',
-  APPLICATION: '开户申请'
 }
 
 export const IdType = {

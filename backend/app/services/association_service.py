@@ -20,8 +20,10 @@ def get_association(
     security_account_id: str | None = None,
     investor_id: str | None = None,
 ) -> AccountAssociation | None:
-    """查询账户关联关系。至少提供一个查询条件。"""
-    query = select(AccountAssociation)
+    """查询账户关联关系。至少提供一个查询条件。只返回当前有效绑定。"""
+    query = select(AccountAssociation).where(
+        AccountAssociation.association_status == AssociationStatus.ACTIVE.value
+    )
     if fund_account_id:
         query = query.where(AccountAssociation.fund_account_id == fund_account_id)
     if security_account_id:

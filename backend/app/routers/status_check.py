@@ -39,7 +39,9 @@ def check_status(
     payload: StatusCheckRequest,
     db: Session = Depends(get_db),
 ) -> ApiResponse[StatusCheckResponse]:
-    account_type = payload.account_type.upper()
+    raw_type = payload.account_type.upper()
+    # 兼容前端历史用法 SECURITIES，统一规范为 SECURITY
+    account_type = "SECURITY" if raw_type in ("SECURITIES", "SECURITY") else raw_type
     account_id = payload.account_id
     operation_type = payload.operation_type.upper()
 
@@ -57,7 +59,7 @@ def check_status(
                 message="校验完成",
             )
         current_status = account.account_status
-    elif account_type == "SECURITIES":
+    elif account_type == "SECURITY":
         return ApiResponse.ok(
             data=StatusCheckResponse(
                 account_type=account_type,
@@ -71,7 +73,7 @@ def check_status(
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"不支持的账户类型: {account_type}，仅支持 FUND 或 SECURITIES",
+            detail=f"不支持的账户类型: {account_type}，仅支持 FUND 或 SECURITY",
         )
 
     allowed_statuses = OPERATION_ALLOWED_STATUSES.get(
