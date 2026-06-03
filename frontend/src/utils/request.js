@@ -4,7 +4,17 @@ import { securitiesAccountList } from '@/mock/securities'
 import { fundAccountList, transactionList } from '@/mock/fund'
 import { associationList } from '@/mock/association'
 import { AccountStatus, AssociationStatus, TransactionStatus, TransactionType } from '@/constants/enums'
-import { changeFundPassword as changeFundPasswordHttp, getFundAccountByNo as getFundAccountByNoHttp, queryAssociations as queryAssociationsHttp } from '@/services/accountService'
+import {
+  changeFundPassword as changeFundPasswordHttp,
+  getFundAccountByNo as getFundAccountByNoHttp,
+  queryAssociations as queryAssociationsHttp,
+  checkAssociationValid as checkAssociationValidHttp,
+  bindAssociation as bindAssociationHttp,
+  unbindAssociation as unbindAssociationHttp,
+  checkStatus as checkStatusHttp,
+  fetchOperationLogs as fetchOperationLogsHttp,
+  writeOperationLog as writeOperationLogHttp,
+} from '@/services/accountService'
 
 const dataSource = import.meta.env.VITE_DATA_SOURCE || 'mock'
 
@@ -51,16 +61,12 @@ function httpNotImplemented() {
 
 export function getSecuritiesAccounts(params) {
   let list = [...securitiesAccountList]
-  // 过滤条件应全部满足（AND 逻辑）
-  // 若提供证券账户号，则精确匹配该账户号
   if (params?.securitiesAccountNo) {
     list = list.filter(item => item.securitiesAccountNo === params.securitiesAccountNo)
   }
-  // 若提供账户状态，则匹配状态
   if (params?.accountStatus) {
     list = list.filter(item => item.accountStatus === params.accountStatus)
   }
-  // 若提供投资者 ID，则匹配投资者
   if (params?.investorId) {
     list = list.filter(item => item.investorId === params.investorId)
   }
@@ -73,7 +79,6 @@ export function getSecuritiesAccountByNo(accountNo) {
 }
 
 export function openSecuritiesAccount(data) {
-  // 模拟生成新账户号
   const newAccountNo = 'SEC' + String(Date.now()).slice(-8)
   const newAccount = {
     securitiesAccountNo: newAccountNo,
@@ -124,19 +129,14 @@ export function openFundAccount(data) {
   return mockRequest({ accountNo: newAccountNo, account: newAccount })
 }
 
-// 存款接口已扩展以接受 password 字段（可选），保持向后兼容
 export function deposit(data) {
   if (dataSource === 'http') return httpNotImplemented()
   const account = fundAccountList.find(a => a.fundAccountNo === data.fundAccountNo)
   if (!account) return mockError('资金账户不存在')
   if (account.accountStatus !== AccountStatus.NORMAL) return mockError('账户状态异常，无法存款')
 
-  // 若前端传递 password，则此处可进行安全校验（当前实现为直接忽略）
-  // const password = data.password // 预留密码校验逻辑
-
   account.availableBalance += data.amount
 
-  // 生成流水
   const serialNo = 'SER' + String(Date.now()).slice(-8)
   const tx = {
     serialNo,
@@ -160,7 +160,6 @@ export function withdraw(data) {
   if (account.accountStatus !== AccountStatus.NORMAL) return mockError('账户状态异常，无法取款')
   if (account.availableBalance < data.amount) return mockError('余额不足')
 
-  // 模拟密码校验（实际应比对 digest）
   if (data.password !== '123456') return mockError('取款密码错误')
 
   account.availableBalance -= data.amount
@@ -194,7 +193,9 @@ export function getAssociations(params) {
 }
 
 export function createAssociation(data) {
-  if (dataSource === 'http') return httpNotImplemented()
+  if (dataSource === 'http') {
+    return bindAssociationHttp(data).then(httpOk)
+  }
   const assoc = {
     associationId: 'ASSOC' + String(Date.now()).slice(-8),
     securitiesAccountNo: data.securitiesAccountNo,
@@ -234,6 +235,200 @@ export function cancelFundAccount(accountNo) {
   if (account.availableBalance > 0 || account.frozenAmount > 0) return mockError('账户资金不为0，请先转出/解冻后再注销')
   account.accountStatus = AccountStatus.CLOSED
   return mockRequest({ fundAccountNo: accountNo, accountStatus: AccountStatus.CLOSED })
+}
+
+// ==================== 关联校验接口（C 部分新增）====================
+
+export function checkAssociation(data) {
+  if (dataSource === 'http') {
+    return checkAssociationValidHttp(data).then(httpOk)
+  }
+  const assoc = associationList.find(
+    a => a.securitiesAccountNo === data.securitiesAccountNo && a.fundAccountNo === data.fundAccountNo
+  )
+  const fundAccount = fundAccountList.find(a => a.fundAccountNo === data.fundAccountNo)
+
+  return mockRequest({
+    fund_account_id: data.fundAccountNo,
+    security_account_id: data.securitiesAccountNo,
+    investor_id: assoc?.investorId || fundAccount?.investorId || 'UNKNOWN',
+    is_related: !!assoc,
+    is_unique_valid: !!assoc,
+    allow_operation: !!assoc && fundAccount?.accountStatus === AccountStatus.NORMAL,
+    fund_account_status: fundAccount?.accountStatus || 'NOT_FOUND',
+    security_account_status: 'NORMAL',
+    reason: !assoc ? '资金账户与证券账户未建立绑定关系' : null
+  })
+}
+
+// ==================== 状态校验接口（C 部分新增）====================
+
+export function checkAccountStatus(data) {
+  if (dataSource === 'http') {
+    return checkStatusHttp(data).then(httpOk)
+  }
+  const accountType = data.accountType?.toUpperCase()
+  let account
+  if (accountType === 'FUND') {
+    account = fundAccountList.find(a => a.fundAccountNo === data.accountId)
+  } else {
+    account = securitiesAccountList.find(a => a.securitiesAccountNo === data.accountId)
+  }
+
+  if (!account) {
+    return mockRequest({
+      account_type: accountType,
+      account_id: data.accountId,
+      status: 'NOT_FOUND',
+      allowed: false,
+      reason: '账户不存在'
+    })
+  }
+
+  const allowed = account.accountStatus === AccountStatus.NORMAL
+  return mockRequest({
+    account_type: accountType,
+    account_id: data.accountId,
+    status: account.accountStatus,
+    allowed,
+    reason: allowed ? null : '账户状态异常，不允许当前操作'
+  })
+}
+
+// ==================== 操作日志接口（C 部分新增）====================
+
+const operationLogList = [
+  {
+    logId: 'LOG00000001',
+    operatorId: 'staff_001',
+    operatorName: '业务受理员',
+    operationType: 'OPEN_ACCOUNT',
+    targetType: 'APPLICATION',
+    targetId: 'APP000001',
+    operationDetail: '为客户张三开设证券账户 SEC00000001 和资金账户 FND00000001',
+    operationResult: 'SUCCESS',
+    operateTime: '2026-05-23T10:00:00'
+  },
+  {
+    logId: 'LOG00000002',
+    operatorId: 'staff_001',
+    operatorName: '业务受理员',
+    operationType: 'DEPOSIT',
+    targetType: 'FUND',
+    targetId: 'FND00000001',
+    operationDetail: '存入金额 ¥50,000.00',
+    operationResult: 'SUCCESS',
+    operateTime: '2026-05-23T11:30:00'
+  },
+  {
+    logId: 'LOG00000003',
+    operatorId: 'staff_001',
+    operatorName: '业务受理员',
+    operationType: 'WITHDRAW',
+    targetType: 'FUND',
+    targetId: 'FND00000001',
+    operationDetail: '取款金额 ¥20,000.00',
+    operationResult: 'SUCCESS',
+    operateTime: '2026-02-15T10:35:00'
+  },
+  {
+    logId: 'LOG00000004',
+    operatorId: 'staff_001',
+    operatorName: '业务受理员',
+    operationType: 'CHANGE_PWD',
+    targetType: 'FUND',
+    targetId: 'FND00000001',
+    operationDetail: '修改交易密码',
+    operationResult: 'SUCCESS',
+    operateTime: '2026-03-10T14:20:00'
+  },
+  {
+    logId: 'LOG00000005',
+    operatorId: 'APR000001',
+    operatorName: '审批人员',
+    operationType: 'APPROVE',
+    targetType: 'APPLICATION',
+    targetId: 'APP000001',
+    operationDetail: '审批通过开户申请 APP000001',
+    operationResult: 'SUCCESS',
+    operateTime: '2026-05-23T10:05:00'
+  },
+  {
+    logId: 'LOG00000006',
+    operatorId: 'staff_001',
+    operatorName: '业务受理员',
+    operationType: 'LINK',
+    targetType: 'ASSOCIATION',
+    targetId: 'ASC00000001',
+    operationDetail: '关联证券账户 SEC00000001 与资金账户 FND00000001',
+    operationResult: 'SUCCESS',
+    operateTime: '2026-05-23T10:02:00'
+  },
+  {
+    logId: 'LOG00000007',
+    operatorId: 'staff_001',
+    operatorName: '业务受理员',
+    operationType: 'LOST',
+    targetType: 'FUND',
+    targetId: 'FND00000002',
+    operationDetail: '资金账户挂失',
+    operationResult: 'SUCCESS',
+    operateTime: '2026-06-01T09:15:00'
+  },
+  {
+    logId: 'LOG00000008',
+    operatorId: 'staff_001',
+    operatorName: '业务受理员',
+    operationType: 'CANCEL',
+    targetType: 'FUND',
+    targetId: 'FND00000001',
+    operationDetail: '资金账户注销申请',
+    operationResult: 'FAILED',
+    failReason: '账户资金不为0，无法注销',
+    operateTime: '2026-05-28T16:00:00'
+  }
+]
+
+export function getOperationLogs(params) {
+  if (dataSource === 'http') {
+    return fetchOperationLogsHttp(params).then(httpOk)
+  }
+  let list = [...operationLogList]
+  if (params?.targetId) {
+    list = list.filter(item => item.targetId === params.targetId)
+  }
+  if (params?.operationType) {
+    list = list.filter(item => item.operationType === params.operationType)
+  }
+  if (params?.operatorId) {
+    list = list.filter(item => item.operatorId === params.operatorId)
+  }
+  const page = params?.page || 1
+  const pageSize = params?.pageSize || 20
+  const total = list.length
+  const start = (page - 1) * pageSize
+  const items = list.slice(start, start + pageSize)
+  return mockRequest({ items, page, pageSize, total })
+}
+
+export function createOperationLog(data) {
+  if (dataSource === 'http') {
+    return writeOperationLogHttp(data).then(httpOk)
+  }
+  const log = {
+    logId: 'LOG' + String(Date.now()).slice(-8),
+    operatorId: data.operatorId,
+    operatorName: data.operatorName,
+    operationType: data.operationType,
+    targetType: data.targetType,
+    targetId: data.targetId,
+    operationDetail: data.operationDetail || null,
+    operationResult: data.operationResult || 'SUCCESS',
+    failReason: data.failReason || null,
+    operateTime: new Date().toISOString()
+  }
+  operationLogList.unshift(log)
+  return mockRequest(log)
 }
 
 // 导出默认实例
