@@ -18,3 +18,26 @@ export function getAssociations(params) {
   return httpClient.get(`${prefix}/associations`, { params })
 }
 
+export function checkAssociation(params) {
+  return httpClient.get(`${prefix}/associations/check`, { params })
+}
+
+export function createAssociation(params) {
+  return httpClient.post(`${prefix}/associations`, null, { params })
+}
+
+export function unlinkAssociation(params) {
+  return httpClient.delete(`${prefix}/associations`, { params })
+}
+
+export function checkAccountStatus(data) {
+  return httpClient.post(`${prefix}/status/check`, data)
+}
+
+export function getOperationLogs(params) {
+  return httpClient.get(`${prefix}/operation-logs`, { params })
+}
+
+export function createOperationLog(data) {
+  return httpClient.post(`${prefix}/operation-logs`, data)
+}

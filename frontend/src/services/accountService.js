@@ -1,4 +1,14 @@
-import { accountChangePassword, getAssociations, getFundAccount } from '@/api/accountApi'
+import {
+  accountChangePassword,
+  checkAccountStatus,
+  checkAssociation,
+  createAssociation,
+  createOperationLog,
+  getAssociations,
+  getFundAccount,
+  getOperationLogs,
+  unlinkAssociation,
+} from '@/api/accountApi'
 
 function toAmountNumber(value) {
   if (value === null || value === undefined || value === '') return 0
@@ -14,7 +24,7 @@ function mapFundAccountFromApi(data) {
     bankCardNo: data.bank_card_no,
     availableBalance: toAmountNumber(data.available_amount),
     frozenAmount: toAmountNumber(data.frozen_amount),
-    accountStatus: data.status
+    accountStatus: data.account_status || data.status
   }
 }
 
@@ -47,6 +57,41 @@ export async function queryAssociations(params) {
   return [assoc]
 }
 
+export async function queryAssociationDetail(params) {
+  const apiParams = {}
+  if (params?.fundAccountNo) apiParams.fund_account_id = params.fundAccountNo
+  if (params?.securitiesAccountNo) apiParams.security_account_id = params.securitiesAccountNo
+  if (params?.investorId) apiParams.investor_id = params.investorId
+  const data = await getAssociations(apiParams)
+  return mapAssociationFromApi(data)
+}
+
+export async function checkAssociationValid(params) {
+  const apiParams = {
+    fund_account_id: params.fundAccountNo,
+    security_account_id: params.securitiesAccountNo,
+    operation_type: params.operationType
+  }
+  if (params.investorId) apiParams.investor_id = params.investorId
+  return await checkAssociation(apiParams)
+}
+
+export async function bindAssociation(params) {
+  const apiParams = {
+    investor_id: params.investorId,
+    fund_account_id: params.fundAccountNo,
+    security_account_id: params.securitiesAccountNo
+  }
+  return await createAssociation(apiParams)
+}
+
+export async function unbindAssociation(params) {
+  const apiParams = {}
+  if (params?.fundAccountNo) apiParams.fund_account_id = params.fundAccountNo
+  if (params?.securitiesAccountNo) apiParams.security_account_id = params.securitiesAccountNo
+  return await unlinkAssociation(apiParams)
+}
+
 export async function changeFundPassword(params) {
   const pwdType = params?.pwdType === 'withdraw' ? 'WITHDRAW' : 'TRADE'
   await accountChangePassword({
@@ -57,3 +102,61 @@ export async function changeFundPassword(params) {
   })
 }
 
+export async function checkStatus(data) {
+  return await checkAccountStatus({
+    account_type: data.accountType,
+    account_id: data.accountId,
+    operation_type: data.operationType,
+    checked_at: data.checkedAt || new Date().toISOString()
+  })
+}
+
+export async function fetchOperationLogs(params) {
+  const apiParams = {
+    page: params?.page || 1,
+    page_size: params?.pageSize || 20
+  }
+  if (params?.operatorId) apiParams.operator_id = params.operatorId
+  if (params?.operationType) apiParams.operation_type = params.operationType
+  if (params?.targetType) apiParams.target_type = params.targetType
+  if (params?.targetId) apiParams.target_id = params.targetId
+  if (params?.operationResult) apiParams.operation_result = params.operationResult
+  if (params?.startTime) apiParams.start_time = params.startTime
+  if (params?.endTime) apiParams.end_time = params.endTime
+
+  const data = await getOperationLogs(apiParams)
+  return {
+    items: (data.items || []).map(item => ({
+      logId: item.log_id,
+      operatorId: item.operator_id,
+      operatorName: item.operator_name,
+      operationType: item.operation_type,
+      targetType: item.target_type,
+      targetId: item.target_id,
+      operationDetail: item.operation_detail,
+      operationResult: item.operation_result,
+      failReason: item.fail_reason,
+      clientIp: item.client_ip,
+      requestId: item.request_id,
+      operateTime: item.created_at
+    })),
+    page: data.page,
+    pageSize: data.page_size,
+    total: data.total
+  }
+}
+
+export async function writeOperationLog(data) {
+  await createOperationLog({
+    operator_id: data.operatorId,
+    operator_name: data.operatorName,
+    operation_type: data.operationType,
+    target_type: data.targetType,
+    target_id: data.targetId,
+    operation_detail: data.operationDetail || null,
+    operation_result: data.operationResult || 'SUCCESS',
+    fail_reason: data.failReason || null,
+    client_ip: data.clientIp || null,
+    request_id: data.requestId || null
+  })
+}
