@@ -14,6 +14,13 @@ class AssociationResponse(OrmModel):
     security_account_id: str
     association_status: AssociationStatus
     associated_at: datetime | None
+    disassociated_at: datetime | None
+
+
+class AssociationHistoryResponse(AssociationResponse):
+    """账户关联历史 - 响应结构"""
+    created_at: datetime
+    updated_at: datetime
 
 
 class AssociationCheckQuery(BaseModel):

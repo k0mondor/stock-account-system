@@ -7,11 +7,11 @@ from app.schemas.common import OrmModel
 
 
 class AccountApplicationCreate(BaseModel):
-    customer_id: str = Field(..., examples=["CUST000001"])
-    applicant_name: str
-    id_number: str
-    phone: str
-    remark: str | None = None
+    customer_id: str = Field(..., min_length=1, max_length=32, examples=["CUST000001"])
+    applicant_name: str = Field(..., min_length=1, max_length=64)
+    id_number: str = Field(..., min_length=1, max_length=32)
+    phone: str = Field(..., min_length=1, max_length=20)
+    remark: str | None = Field(None, max_length=1000)
 
 
 class AccountApplicationRead(OrmModel):
@@ -33,12 +33,15 @@ class AccountApplicationRead(OrmModel):
 
 class AccountApplicationApprove(BaseModel):
     approver_id: str = Field(..., examples=["APR000001"])
-    approval_opinion: str | None = None
+    approval_opinion: str | None = Field(None, max_length=1000)
+    bank_card_no: str = Field(..., min_length=8, max_length=32)
+    trade_password: str = Field(..., min_length=6, max_length=64)
+    withdraw_password: str = Field(..., min_length=6, max_length=64)
 
 
 class AccountApplicationReject(BaseModel):
     approver_id: str = Field(..., examples=["APR000001"])
-    approval_opinion: str
+    approval_opinion: str = Field(..., min_length=1, max_length=1000)
 
 
 class ApprovalRecordRead(OrmModel):

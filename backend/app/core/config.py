@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1/account"
     database_url: str = "sqlite:///./account_dev.sqlite3"
     cors_origins: str = "http://localhost:5173"
+    auth_token_secret: str = "change-this-development-auth-secret"
+    service_token: str = ""
+    access_token_expire_hours: int = 8
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

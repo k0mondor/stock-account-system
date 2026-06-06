@@ -2,16 +2,48 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.models.fund_account import FundAccount
+from app.core.auth_dependencies import require_access_token, require_service_token
+from app.core.account_rules import allowed_statuses
 from app.schemas.association import (
     AssociationCheckResponse,
+    AssociationHistoryResponse,
     AssociationResponse,
 )
 from app.schemas.common import ApiResponse
 from app.services import association_service
-from app.core.enums import AccountStatus
 
 router = APIRouter()
+
+
+@router.get(
+    "/history",
+    response_model=ApiResponse[list[AssociationHistoryResponse]],
+    summary="查询账户关联历史",
+    description="查询当前有效及已解除的绑定记录，用于业务办理历史追踪。",
+)
+def query_association_history(
+    fund_account_id: str | None = Query(None, description="资金账户号"),
+    security_account_id: str | None = Query(None, description="证券账户号"),
+    investor_id: str | None = Query(None, description="投资者编号"),
+    claims: dict = Depends(require_service_token),
+    db: Session = Depends(get_db),
+) -> ApiResponse[list[AssociationHistoryResponse]]:
+    del claims
+    if not fund_account_id and not security_account_id and not investor_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="至少需要提供一个查询条件：fund_account_id、security_account_id 或 investor_id",
+        )
+    records = association_service.list_association_history(
+        db,
+        fund_account_id=fund_account_id,
+        security_account_id=security_account_id,
+        investor_id=investor_id,
+    )
+    return ApiResponse.ok(
+        [AssociationHistoryResponse.model_validate(item) for item in records],
+        "查询成功",
+    )
 
 
 @router.get(
@@ -24,6 +56,7 @@ def query_association(
     fund_account_id: str | None = Query(None, description="资金账户号"),
     security_account_id: str | None = Query(None, description="证券账户号"),
     investor_id: str | None = Query(None, description="投资者编号"),
+    claims: dict = Depends(require_access_token),
     db: Session = Depends(get_db),
 ) -> ApiResponse[AssociationResponse]:
     if not fund_account_id and not security_account_id and not investor_id:
@@ -31,6 +64,25 @@ def query_association(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="至少需要提供一个查询条件：fund_account_id、security_account_id 或 investor_id",
         )
+    if claims["token_type"] != "SERVICE":
+        if fund_account_id and claims["fund_account_id"] != fund_account_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="访问令牌与资金账户不匹配",
+            )
+        if (
+            security_account_id
+            and claims["security_account_id"] != security_account_id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="访问令牌与证券账户不匹配",
+            )
+        if investor_id and claims["investor_id"] != investor_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="访问令牌与投资者不匹配",
+            )
 
     association = association_service.get_association(
         db,
@@ -48,6 +100,7 @@ def query_association(
                 security_account_id=security_account_id or "",
                 association_status="UNLINKED",
                 associated_at=None,
+                disassociated_at=None,
             ),
             message="未找到有效关联关系",
         )
@@ -69,8 +122,23 @@ def check_association(
     security_account_id: str = Query(..., description="证券账户号"),
     operation_type: str = Query(..., description="当前业务类型"),
     investor_id: str | None = Query(None, description="投资者编号"),
+    claims: dict = Depends(require_access_token),
     db: Session = Depends(get_db),
 ) -> ApiResponse[AssociationCheckResponse]:
+    if claims["token_type"] != "SERVICE" and (
+        claims["fund_account_id"] != fund_account_id
+        or claims["security_account_id"] != security_account_id
+        or (investor_id and claims["investor_id"] != investor_id)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="访问令牌与待校验账户不匹配",
+        )
+    if allowed_statuses(operation_type) is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"不支持的业务类型: {operation_type}",
+        )
     result = association_service.check_association(
         db,
         fund_account_id=fund_account_id,
@@ -95,28 +163,22 @@ def create_association(
     investor_id: str = Query(..., description="投资者编号"),
     fund_account_id: str = Query(..., description="资金账户号"),
     security_account_id: str = Query(..., description="证券账户号"),
+    claims: dict = Depends(require_service_token),
     db: Session = Depends(get_db),
 ) -> ApiResponse[AssociationResponse]:
-    fund_account = db.get(FundAccount, fund_account_id)
-    if not fund_account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"资金账户 {fund_account_id} 不存在",
+    del claims
+    try:
+        association = association_service.create_association(
+            db,
+            investor_id=investor_id,
+            fund_account_id=fund_account_id,
+            security_account_id=security_account_id,
         )
-    if fund_account.account_status != AccountStatus.NORMAL.value:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="资金账户状态异常，无法建立关联",
-        )
-
-    association = association_service.create_association(
-        db,
-        investor_id=investor_id,
-        fund_account_id=fund_account_id,
-        security_account_id=security_account_id,
-    )
-    db.commit()
-    db.refresh(association)
+        db.commit()
+        db.refresh(association)
+    except Exception:
+        db.rollback()
+        raise
     return ApiResponse.ok(
         data=AssociationResponse.model_validate(association),
         message="关联创建成功",
@@ -132,21 +194,27 @@ def create_association(
 def unlink_association(
     fund_account_id: str | None = Query(None, description="资金账户号"),
     security_account_id: str | None = Query(None, description="证券账户号"),
+    claims: dict = Depends(require_service_token),
     db: Session = Depends(get_db),
 ) -> ApiResponse[AssociationResponse]:
+    del claims
     if not fund_account_id and not security_account_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="至少需要提供 fund_account_id 或 security_account_id",
         )
 
-    association = association_service.unlink_association(
-        db,
-        fund_account_id=fund_account_id,
-        security_account_id=security_account_id,
-    )
-    db.commit()
-    db.refresh(association)
+    try:
+        association = association_service.unlink_association(
+            db,
+            fund_account_id=fund_account_id,
+            security_account_id=security_account_id,
+        )
+        db.commit()
+        db.refresh(association)
+    except Exception:
+        db.rollback()
+        raise
     return ApiResponse.ok(
         data=AssociationResponse.model_validate(association),
         message="关联已解除",

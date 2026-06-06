@@ -1,8 +1,10 @@
+from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.request_context import get_request_id
 from app.models.operation_log import OperationLog
 from app.schemas.operation_log import OperationLogCreate
 
@@ -31,6 +33,31 @@ def create_operation_log(db: Session, payload: OperationLogCreate) -> OperationL
     return log_entry
 
 
+def add_operation_log(
+    db: Session,
+    *,
+    operator_id: str,
+    operator_name: str,
+    operation_type: str,
+    target_type: str,
+    target_id: str,
+    operation_detail: str,
+) -> OperationLog:
+    """供业务服务在同一事务内写入审计日志。"""
+    return create_operation_log(
+        db,
+        OperationLogCreate(
+            operator_id=operator_id,
+            operator_name=operator_name,
+            operation_type=operation_type,
+            target_type=target_type,
+            target_id=target_id,
+            operation_detail=operation_detail,
+            request_id=get_request_id(),
+        ),
+    )
+
+
 def list_operation_logs(
     db: Session,
     operator_id: str | None = None,
@@ -38,8 +65,8 @@ def list_operation_logs(
     target_type: str | None = None,
     target_id: str | None = None,
     operation_result: str | None = None,
-    start_time: str | None = None,
-    end_time: str | None = None,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
     page: int = 1,
     page_size: int = 20,
 ) -> tuple[list[OperationLog], int]:
@@ -61,8 +88,8 @@ def list_operation_logs(
             q = q.where(OperationLog.created_at <= end_time)
         return q
 
-    count_query = _apply_filters(select(OperationLog))
-    total = len(db.scalars(count_query).all())
+    count_query = _apply_filters(select(func.count()).select_from(OperationLog))
+    total = db.scalar(count_query) or 0
 
     offset = (page - 1) * page_size
     query = _apply_filters(select(OperationLog))

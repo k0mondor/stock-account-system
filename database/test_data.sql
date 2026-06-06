@@ -56,6 +56,8 @@ INSERT INTO fund_accounts (
     fund_account_id,
     investor_id,
     bank_card_no,
+    trade_password_hash,
+    withdraw_password_hash,
     available_balance,
     frozen_amount,
     total_amount,
@@ -66,9 +68,25 @@ INSERT INTO fund_accounts (
     'FUND000001',
     'CUST000001',
     '6222021234567890123',
+    'pbkdf2_sha256$200000$315b27557decf0ed280073750de71dc9$968f989d34adc8fa38bcc53f4ec617f3bd7405fb24cd9d17f058097e2cf0ca34',
+    'pbkdf2_sha256$200000$5e2b66ec1a41c75560c377b156c199b6$91aaa8adae52de4a85054736b45e774fc8729cf137861a8460b1c12657b4fdc9',
     0.00,
     0.00,
     0.00,
+    'NORMAL',
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+);
+
+INSERT INTO securities_accounts (
+    security_account_id,
+    investor_id,
+    account_status,
+    created_at,
+    updated_at
+) VALUES (
+    'SEC000001',
+    'CUST000001',
     'NORMAL',
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
@@ -84,6 +102,7 @@ INSERT INTO account_associations (
     security_account_id,
     association_status,
     associated_at,
+    disassociated_at,
     created_at,
     updated_at
 ) VALUES (
@@ -93,6 +112,7 @@ INSERT INTO account_associations (
     'SEC000001',
     'ACTIVE',
     CURRENT_TIMESTAMP,
+    NULL,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
 );

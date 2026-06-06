@@ -7,16 +7,16 @@ from app.schemas.common import OrmModel
 
 class OperationLogCreate(BaseModel):
     """操作日志 - 创建请求"""
-    operator_id: str = Field(..., description="操作人员 ID")
-    operator_name: str = Field(..., description="操作人员姓名")
-    operation_type: str = Field(..., description="操作类型")
-    target_type: str = Field(..., description="操作目标类型")
-    target_id: str = Field(..., description="操作目标 ID")
+    operator_id: str = Field(..., min_length=1, max_length=32, description="操作人员 ID")
+    operator_name: str = Field(..., min_length=1, max_length=64, description="操作人员姓名")
+    operation_type: str = Field(..., min_length=1, max_length=32, description="操作类型")
+    target_type: str = Field(..., min_length=1, max_length=32, description="操作目标类型")
+    target_id: str = Field(..., min_length=1, max_length=64, description="操作目标 ID")
     operation_detail: str | None = Field(None, description="操作详情")
-    operation_result: str = Field("SUCCESS", description="操作结果")
+    operation_result: str = Field("SUCCESS", min_length=1, max_length=16, description="操作结果")
     fail_reason: str | None = Field(None, description="失败原因")
-    client_ip: str | None = Field(None, description="客户端 IP")
-    request_id: str | None = Field(None, description="请求追踪 ID")
+    client_ip: str | None = Field(None, max_length=64, description="客户端 IP")
+    request_id: str | None = Field(None, max_length=64, description="请求追踪 ID")
 
 
 class OperationLogResponse(OrmModel):

@@ -1,8 +1,9 @@
-import uuid
 from datetime import datetime, timezone
 from typing import Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict
+
+from app.core.request_context import get_request_id
 
 T = TypeVar("T")
 
@@ -23,7 +24,7 @@ class ApiResponse(BaseModel, Generic[T]):
             code="OK",
             message=message,
             data=data,
-            request_id=str(uuid.uuid4()),
+            request_id=get_request_id(),
             timestamp=datetime.now(timezone.utc),
         )
 
@@ -34,7 +35,7 @@ class ApiResponse(BaseModel, Generic[T]):
             code=code,
             message=message,
             data=None,
-            request_id=str(uuid.uuid4()),
+            request_id=get_request_id(),
             timestamp=datetime.now(timezone.utc),
         )
 

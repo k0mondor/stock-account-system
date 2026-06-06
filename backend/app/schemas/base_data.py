@@ -7,10 +7,10 @@ from app.schemas.common import OrmModel
 
 
 class CustomerCreate(BaseModel):
-    customer_id: str = Field(..., examples=["CUST000001"])
-    customer_name: str
-    id_number: str
-    phone: str
+    customer_id: str = Field(..., min_length=1, max_length=32, examples=["CUST000001"])
+    customer_name: str = Field(..., min_length=1, max_length=64)
+    id_number: str = Field(..., min_length=1, max_length=32)
+    phone: str = Field(..., min_length=1, max_length=20)
     customer_status: CustomerStatus = CustomerStatus.ACTIVE
 
 
@@ -25,10 +25,10 @@ class CustomerRead(OrmModel):
 
 
 class StaffCreate(BaseModel):
-    staff_id: str = Field(..., examples=["STAFF000001"])
-    staff_name: str
+    staff_id: str = Field(..., min_length=1, max_length=32, examples=["STAFF000001"])
+    staff_name: str = Field(..., min_length=1, max_length=64)
     role: StaffRole = StaffRole.STAFF
-    phone: str | None = None
+    phone: str | None = Field(None, max_length=20)
     staff_status: StaffStatus = StaffStatus.ACTIVE
 
 

@@ -4,6 +4,7 @@ from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.enums import CustomerStatus, StaffRole, StaffStatus
+from app.core.time import utc_now
 from app.db.session import Base
 
 
@@ -15,8 +16,8 @@ class Customer(Base):
     id_number: Mapped[str] = mapped_column(String(32), nullable=False, unique=True, index=True)
     phone: Mapped[str] = mapped_column(String(20), nullable=False)
     customer_status: Mapped[str] = mapped_column(String(16), default=CustomerStatus.ACTIVE.value)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
 
 
 class Staff(Base):
@@ -27,5 +28,5 @@ class Staff(Base):
     role: Mapped[str] = mapped_column(String(16), default=StaffRole.STAFF.value, index=True)
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     staff_status: Mapped[str] = mapped_column(String(16), default=StaffStatus.ACTIVE.value)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)

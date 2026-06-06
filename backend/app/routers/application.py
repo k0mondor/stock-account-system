@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.core.auth_dependencies import require_service_token
 from app.models.application import AccountApplication
+from app.core.enums import ApplicationStatus, ProcessStatus
 from app.schemas.application import (
     AccountApplicationApprove,
     AccountApplicationCreate,
@@ -13,7 +15,10 @@ from app.schemas.application import (
 from app.schemas.common import ApiResponse, ok
 from app.services import application_service
 
-router = APIRouter(prefix="/applications")
+router = APIRouter(
+    prefix="/applications",
+    dependencies=[Depends(require_service_token)],
+)
 
 
 @router.post(
@@ -31,11 +36,15 @@ def create_application(
 
 @router.get("", response_model=ApiResponse[list[AccountApplicationRead]])
 def list_applications(
-    app_status: str | None = Query(None),
-    proc_status: str | None = Query(None),
+    app_status: ApplicationStatus | None = Query(None),
+    proc_status: ProcessStatus | None = Query(None),
     db: Session = Depends(get_db),
 ) -> ApiResponse[list[AccountApplicationRead]]:
-    applications = application_service.list_applications(db, app_status, proc_status)
+    applications = application_service.list_applications(
+        db,
+        app_status.value if app_status else None,
+        proc_status.value if proc_status else None,
+    )
     return ok([AccountApplicationRead.model_validate(item) for item in applications])
 
 
@@ -63,6 +72,9 @@ def approve_application(
         application_id,
         payload.approver_id,
         payload.approval_opinion,
+        payload.bank_card_no,
+        payload.trade_password,
+        payload.withdraw_password,
     )
     return ok(AccountApplicationRead.model_validate(application), "审批通过，已生成连续开户结果")
 

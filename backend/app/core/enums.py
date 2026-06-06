@@ -49,3 +49,17 @@ class ProcessStatus(StrEnum):
 class ApprovalResult(StrEnum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+
+
+class FundChangeType(StrEnum):
+    FREEZE = "FREEZE"
+    RELEASE = "RELEASE"
+    DEDUCT = "DEDUCT"
+    INCREASE = "INCREASE"
+
+
+class PositionChangeType(StrEnum):
+    FREEZE = "FREEZE"
+    RELEASE = "RELEASE"
+    DEDUCT = "DEDUCT"
+    INCREASE = "INCREASE"
