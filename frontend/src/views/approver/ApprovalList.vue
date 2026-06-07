@@ -3,23 +3,49 @@
   <div>
     <PageHeader title="审批列表" />
 
-    <el-card style="margin-top: 24px; max-width: 1100px; background: var(--color-white);">
-      <el-table :data="approvalList" stripe style="width: 100%;">
+    <el-card style="margin-top: 24px; max-width: 1200px; background: var(--color-white);">
+      <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 20px;">
+        <button class="btn-primary" @click="handleSearch">查询</button>
+        <button class="btn-secondary" @click="resetSearch">重置</button>
+      </div>
+
+      <el-table
+        v-loading="loading"
+        :data="approvalList"
+        :empty-text="emptyText"
+        stripe
+        style="width: 100%;"
+      >
         <el-table-column prop="applyId" label="申请编号" width="140" />
         <el-table-column prop="investorId" label="投资者ID" width="100" />
-        <el-table-column prop="accountType" label="账户类型" width="120" />
-        <el-table-column prop="applyType" label="申请类型" width="120" />
-        <el-table-column label="申请状态" width="120">
+        <el-table-column prop="applicantName" label="申请人" width="120" />
+        <el-table-column prop="idNo" label="证件号码" width="190" />
+        <el-table-column prop="phone" label="联系电话" width="140" />
+        <el-table-column label="处理状态" width="120">
           <template #default="{ row }">
-            <el-tag :type="row.applyStatus === 'PENDING_APPROVE' ? 'warning' : ''">
-              {{ ApplyStatusLabel[row.applyStatus] }}
+            <el-tag :type="PROCESS_STATUS_TAG[row.applyStatus] || 'info'">
+              {{ PROCESS_STATUS_LABEL[row.applyStatus] || row.applyStatus }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="业务状态" width="120">
+          <template #default="{ row }">
+            <el-tag type="info">
+              {{ APP_STATUS_LABEL[row.appStatus] || row.appStatus }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="applyTime" label="申请时间" />
         <el-table-column label="操作" fixed="right" width="160">
           <template #default="{ row }">
-            <el-button link @click="handleApprove(row)" style="color: var(--color-black);">审批</el-button>
+            <el-button
+              link
+              :disabled="row.applyStatus !== 'PENDING'"
+              @click="handleApprove(row)"
+              style="color: var(--color-black);"
+            >
+              审批
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -30,6 +56,15 @@
       <el-form :model="approveForm" label-width="80px">
         <el-form-item label="审批意见">
           <el-input v-model="approveForm.comment" type="textarea" :rows="3" />
+        </el-form-item>
+        <el-form-item label="银行卡号">
+          <el-input v-model="approveForm.bankCardNo" placeholder="审批通过时必填" />
+        </el-form-item>
+        <el-form-item label="交易密码">
+          <el-input v-model="approveForm.tradePassword" type="password" show-password placeholder="审批通过时必填" />
+        </el-form-item>
+        <el-form-item label="取款密码">
+          <el-input v-model="approveForm.withdrawPassword" type="password" show-password placeholder="审批通过时必填" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -44,43 +79,113 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ApplyStatusLabel } from '@/constants/enums'
+import { approveApplication, getApplications, rejectApplication } from '@/utils/request'
 import PageHeader from '@/components/PageHeader.vue'
 
-  const approvalList = ref([
-    {
-      applyId: 'APP00000001',
-      investorId: 10001,
-      accountType: 'SECURITIES',
-      applyType: 'ACCOUNT_OPEN',
-      applyStatus: 'PENDING_APPROVE',
-      applyTime: '2026-05-23T10:00:00'
-    },
-    {
-      applyId: 'APP00000002',
-      investorId: 10002,
-      accountType: 'FUND',
-      applyType: 'ACCOUNT_OPEN',
-      applyStatus: 'PENDING_APPROVE',
-      applyTime: '2026-05-23T11:30:00'
-    }
-  ])
+const PROCESS_STATUS_LABEL = {
+  PENDING: '待审批',
+  APPROVED: '已通过',
+  REJECTED: '已驳回',
+  COMPLETED: '已完成'
+}
+
+const PROCESS_STATUS_TAG = {
+  PENDING: 'warning',
+  APPROVED: 'success',
+  REJECTED: 'danger',
+  COMPLETED: 'info'
+}
+
+const APP_STATUS_LABEL = {
+  SUBMITTED: '已提交',
+  CANCELLED: '已撤销'
+}
+
+const approvalList = ref([])
+const loading = ref(false)
+const hasSearched = ref(false)
 
 const dialogVisible = ref(false)
 const currentApply = ref(null)
-const approveForm = ref({ comment: '' })
+const approveForm = ref({
+  comment: '',
+  bankCardNo: '',
+  tradePassword: '',
+  withdrawPassword: ''
+})
+
+const emptyText = computed(() => {
+  return hasSearched.value ? '当前没有可显示的审批申请' : '点击查询加载审批列表'
+})
+
+const loadApplications = async () => {
+  loading.value = true
+  try {
+    const res = await getApplications()
+    approvalList.value = (res.data || []).sort((a, b) => new Date(b.applyTime) - new Date(a.applyTime))
+    hasSearched.value = true
+  } catch (error) {
+    approvalList.value = []
+    ElMessage.error(error.message || '加载审批列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleSearch = () => {
+  loadApplications()
+}
+
+const resetSearch = () => {
+  approvalList.value = []
+  hasSearched.value = false
+}
 
 const handleApprove = (row) => {
   currentApply.value = row
-  approveForm.value = { comment: '' }
+  approveForm.value = {
+    comment: '',
+    bankCardNo: '',
+    tradePassword: '',
+    withdrawPassword: ''
+  }
   dialogVisible.value = true
 }
 
-const submitApprove = (status) => {
-  ElMessage.success(`审批${status === 'APPROVED' ? '通过' : '驳回'}成功`)
-  dialogVisible.value = false
-  // 实际应更新列表状态
+const submitApprove = async (status) => {
+  if (!currentApply.value) return
+
+  try {
+    if (status === 'APPROVED') {
+      if (!approveForm.value.bankCardNo || !approveForm.value.tradePassword || !approveForm.value.withdrawPassword) {
+        ElMessage.error('审批通过时请补全银行卡号、交易密码和取款密码')
+        return
+      }
+      const res = await approveApplication({
+        applicationId: currentApply.value.applyId,
+        comment: approveForm.value.comment,
+        bankCardNo: approveForm.value.bankCardNo,
+        tradePassword: approveForm.value.tradePassword,
+        withdrawPassword: approveForm.value.withdrawPassword
+      })
+      ElMessage.success(
+        `审批通过，已生成账户：${res.data.securitiesAccountNo || '-'} / ${res.data.fundAccountNo || '-'}`
+      )
+    } else {
+      await rejectApplication({
+        applicationId: currentApply.value.applyId,
+        comment: approveForm.value.comment || '审批驳回'
+      })
+      ElMessage.success('审批驳回成功')
+    }
+
+    dialogVisible.value = false
+    currentApply.value = null
+    await loadApplications()
+  } catch (error) {
+    ElMessage.error(error.message || '审批失败')
+  }
 }
 </script>

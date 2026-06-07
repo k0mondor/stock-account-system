@@ -51,15 +51,15 @@
       </div>
 
       <div class="help-section">
-        <div class="help-h"><BiText text="数据源/DATA SOURCE" /></div>
+        <div class="help-h"><BiText text="联调模式/INTEGRATION" /></div>
         <div class="help-list">
           <div class="help-item">
-            <BiText text="当前数据源/CURRENT" />
-            <span class="mono">{{ dataSource }}</span>
+            <BiText text="接口前缀/API BASE" />
+            <span class="mono">{{ apiBaseUrl }}</span>
           </div>
           <div class="help-item">
-            <BiText text="切换方式/ENV" />
-            <span class="mono">VITE_DATA_SOURCE</span>
+            <BiText text="鉴权方式/AUTH" />
+            <span class="mono">Bearer Token</span>
           </div>
         </div>
       </div>
@@ -84,7 +84,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-const dataSource = import.meta.env.VITE_DATA_SOURCE || 'mock'
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'same-origin'
 </script>
 
 <style scoped>

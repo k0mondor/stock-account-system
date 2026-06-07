@@ -7,7 +7,7 @@
       <div style="max-width: 400px; margin: 0 auto;">
         <el-form ref="formRef" :model="form" :rules="rules" @submit.prevent style="display: flex; flex-direction: column; gap: 20px;">
           <el-form-item label="资金账户号" label-position="top" prop="fundAccountNo" style="margin-bottom: 0;">
-            <el-input v-model="form.fundAccountNo" placeholder="FND00000001" style="width: 100%;" />
+            <el-input v-model="form.fundAccountNo" placeholder="FUND000001" style="width: 100%;" />
           </el-form-item>
           <el-form-item label="密码类型" label-position="top" prop="pwdType" style="margin-bottom: 0;">
             <el-select v-model="form.pwdType" placeholder="请选择密码类型" style="width: 100%;">

@@ -16,6 +16,13 @@ function toAmountNumber(value) {
   return Number.isFinite(n) ? n : 0
 }
 
+function asArray(data) {
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.items)) return data.items
+  if (Array.isArray(data?.data)) return data.data
+  return []
+}
+
 function mapFundAccountFromApi(data) {
   if (!data) return null
   return {
@@ -126,7 +133,7 @@ export async function fetchOperationLogs(params) {
 
   const data = await getOperationLogs(apiParams)
   return {
-    items: (data.items || []).map(item => ({
+    items: asArray(data?.items ? data : data?.data ? data.data : data).map(item => ({
       logId: item.log_id,
       operatorId: item.operator_id,
       operatorName: item.operator_name,

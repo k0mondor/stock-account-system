@@ -2,11 +2,11 @@
   <div>
     <PageHeader title="证券账户查询" />
 
-    <el-card style="margin-top: 24px; max-width: 1100px; background: var(--color-white);">
-      <div style="max-width: 400px; margin: 0 auto;">
-        <el-form @submit.prevent style="display: flex; flex-direction: column; gap: 20px;">
+    <PagePanel>
+      <PageFormBlock>
+        <el-form class="page-form-stack" @submit.prevent>
           <el-form-item label="账户号" label-position="top" style="margin-bottom: 0;">
-            <el-input v-model="searchNo" placeholder="SEC00000001" style="width: 100%;" />
+            <el-input v-model="searchNo" placeholder="SEC000001" style="width: 100%;" />
           </el-form-item>
           <el-form-item label="状态" label-position="top" style="margin-bottom: 0;">
             <el-select v-model="searchStatus" placeholder="全部" clearable style="width: 100%;">
@@ -19,13 +19,15 @@
             </el-select>
           </el-form-item>
         </el-form>
-        <div style="display: flex; justify-content: center; margin-top: 32px;">
-          <button class="btn-primary" @click="handleSearch">查询</button>
-          <button class="btn-secondary" style="margin-left: 12px;" @click="resetSearch">重置</button>
-        </div>
-      </div>
+        <PageActionRow primary-text="查询" secondary-text="重置" @primary="handleSearch" @secondary="resetSearch" />
+      </PageFormBlock>
 
-      <el-table :data="tableData" stripe style="width: 100%; margin-top: 32px;">
+      <el-table
+        :data="tableData"
+        :empty-text="emptyText"
+        stripe
+        style="width: 100%; margin-top: 32px;"
+      >
         <el-table-column prop="securitiesAccountNo" label="证券账户号" width="160" />
         <el-table-column prop="investorName" label="投资者姓名" width="120" />
         <el-table-column prop="idNo" label="证件号码" width="180" />
@@ -38,53 +40,84 @@
         <el-table-column prop="openTime" label="开户时间" width="180" />
         <el-table-column label="操作" fixed="right" width="120">
           <template #default="{ row }">
-            <el-button link @click="viewDetail(row)" style="color: var(--color-black);">详情</el-button>
+            <el-button
+              v-if="row?.securitiesAccountNo"
+              link
+              @click="viewDetail(row)"
+              style="color: var(--color-black);"
+            >
+              详情
+            </el-button>
+            <span v-else style="color: var(--color-gray-400);">--</span>
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
 
-    <el-dialog v-model="detailVisible" title="账户详情" width="500px">
-      <div v-if="currentAccount" style="line-height: 2;">
-        <p><strong>账户号：</strong>{{ currentAccount.securitiesAccountNo }}</p>
-        <p><strong>投资者：</strong>{{ currentAccount.investorName }} (ID: {{ currentAccount.investorId }})</p>
-        <p><strong>证件：</strong>{{ IdTypeLabel[currentAccount.idType] }} {{ currentAccount.idNo }}</p>
-        <p><strong>电话：</strong>{{ currentAccount.phone }}</p>
-        <p><strong>状态：</strong><AccountStatusTag :status="currentAccount.accountStatus" /></p>
-        <p><strong>开户时间：</strong>{{ currentAccount.openTime }}</p>
-      </div>
-      <template #footer>
-        <el-button @click="detailVisible = false">关闭</el-button>
-      </template>
-    </el-dialog>
+      <el-dialog v-model="detailVisible" title="账户详情" width="500px">
+        <div v-if="currentAccount" style="line-height: 2;">
+          <p><strong>账户号：</strong>{{ currentAccount.securitiesAccountNo }}</p>
+          <p><strong>投资者：</strong>{{ currentAccount.investorName }} (ID: {{ currentAccount.investorId }})</p>
+          <p><strong>证件：</strong>{{ IdTypeLabel[currentAccount.idType] }} {{ currentAccount.idNo }}</p>
+          <p><strong>电话：</strong>{{ currentAccount.phone }}</p>
+          <p><strong>状态：</strong><AccountStatusTag :status="currentAccount.accountStatus" /></p>
+          <p><strong>开户时间：</strong>{{ currentAccount.openTime }}</p>
+        </div>
+        <template #footer>
+          <el-button @click="detailVisible = false">关闭</el-button>
+        </template>
+      </el-dialog>
+    </PagePanel>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getSecuritiesAccounts } from '@/utils/request'
 import { AccountStatusLabel, IdTypeLabel } from '@/constants/enums'
 import AccountStatusTag from '@/components/AccountStatusTag.vue'
+import PageActionRow from '@/components/PageActionRow.vue'
+import PageFormBlock from '@/components/PageFormBlock.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import PagePanel from '@/components/PagePanel.vue'
 
 const searchNo = ref('')
 const searchStatus = ref('')
 const tableData = ref([])
 const detailVisible = ref(false)
 const currentAccount = ref(null)
+const hasSearched = ref(false)
+
+const emptyText = computed(() => {
+  return hasSearched.value ? '未查询到符合条件的证券账户' : '请输入条件后点击查询'
+})
+
+function normalizeTableData(data) {
+  const list = Array.isArray(data) ? data : data ? [data] : []
+  return list.filter(item => item && item.securitiesAccountNo)
+}
 
 const fetchData = async (params = {}) => {
   try {
     const res = await getSecuritiesAccounts(params)
-    tableData.value = res.data || []
+    hasSearched.value = true
+    tableData.value = normalizeTableData(res.data)
+    if (!tableData.value.length) {
+      currentAccount.value = null
+      detailVisible.value = false
+      ElMessage.info('未查询到符合条件的证券账户')
+    }
   } catch (e) {
-    ElMessage.error('查询失败')
+    tableData.value = []
+    currentAccount.value = null
+    detailVisible.value = false
+    ElMessage.error(e.message || '查询失败')
   }
 }
 
 // 查询时支持单条件或双条件，若同时填写则必须同时满足（AND）
 const handleSearch = () => {
+  searchNo.value = searchNo.value.trim()
   // 若两个条件均未填写，则提示错误
   if (!searchNo.value && !searchStatus.value) {
     ElMessage.error('请至少填写账户号或状态后再查询')
@@ -99,20 +132,29 @@ const handleSearch = () => {
 const resetSearch = () => {
   searchNo.value = ''
   searchStatus.value = ''
-  fetchData()
+  tableData.value = []
+  currentAccount.value = null
+  detailVisible.value = false
+  hasSearched.value = false
 }
 
 const viewDetail = (row) => {
+  if (!row?.securitiesAccountNo) {
+    ElMessage.warning('当前记录缺少账户信息，无法查看详情')
+    return
+  }
   currentAccount.value = row
   detailVisible.value = true
 }
-
-onMounted(() => {
-  fetchData()
-})
 </script>
 
 <style scoped>
+.page-form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 :deep(.el-form-item) {
   margin-bottom: 28px !important;
   position: relative;

@@ -2,17 +2,17 @@
   <div>
     <PageHeader title="证券账户挂失补办" show-back />
 
-    <el-card style="margin: 24px auto 0; max-width: 1100px; background: var(--color-white);">
+    <PagePanel>
       <el-steps :active="step" align-center style="margin-bottom: 32px;">
         <el-step title="信息查询" />
         <el-step title="执行挂失" />
-        <el-step title="补办新卡" />
+        <el-step title="恢复账户" />
       </el-steps>
 
-      <div v-if="step === 0" style="max-width: 400px; margin: 0 auto;">
-        <el-form @submit.prevent style="display: flex; flex-direction: column; gap: 20px;">
+      <PageFormBlock v-if="step === 0">
+        <el-form class="page-form-stack" @submit.prevent>
           <el-form-item label="原账户号" label-position="top" style="margin-bottom: 0;">
-            <el-input v-model="form.securitiesAccountNo" placeholder="SEC00000001" style="width: 100%;" />
+            <el-input v-model="form.securitiesAccountNo" placeholder="SEC000001" style="width: 100%;" />
           </el-form-item>
           <el-form-item label="投资者姓名" label-position="top" style="margin-bottom: 0;">
             <el-input v-model="form.investorName" placeholder="张三" style="width: 100%;" />
@@ -21,58 +21,61 @@
             <el-input v-model="form.idNo" placeholder="330102199001011234" style="width: 100%;" />
           </el-form-item>
         </el-form>
-        <div style="display: flex; justify-content: center; margin-top: 32px;">
-          <button class="btn-primary" @click="handleQuery">查询</button>
-          <button class="btn-secondary" style="margin-left: 12px;" @click="resetForm">重置</button>
-        </div>
+        <PageActionRow primary-text="查询" secondary-text="重置" @primary="handleQuery" @secondary="resetForm" />
 
-        <div v-if="accountInfo" style="margin-top: 32px; padding: 24px; border: 1px solid var(--color-border);">
-          <h4 style="margin: 0 0 16px; font-weight: 600;">查询结果</h4>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <PageInfoCard v-if="accountInfo" title="查询结果">
+          <PageDetailGrid>
             <div><strong>账户号：</strong>{{ accountInfo.securitiesAccountNo }}</div>
             <div><strong>姓名：</strong>{{ accountInfo.investorName }}</div>
             <div><strong>证件：</strong>{{ accountInfo.idNo }}</div>
             <div><strong>状态：</strong><AccountStatusTag :status="accountInfo.accountStatus" /></div>
-          </div>
-          <div style="margin-top: 24px; text-align: center;">
-            <button class="btn-primary" @click="handleLost" :disabled="accountInfo.accountStatus !== 'NORMAL'">执行挂失</button>
-          </div>
-        </div>
-      </div>
+          </PageDetailGrid>
+          <PageActionRow
+            primary-text="执行挂失"
+            :primary-disabled="accountInfo.accountStatus !== AccountStatus.NORMAL"
+            @primary="handleLost"
+          />
+        </PageInfoCard>
+      </PageFormBlock>
 
-      <div v-if="step === 1" style="text-align: center; padding: 40px 0;">
-        <div style="font-size: 64px; margin-bottom: 16px;">✓</div>
+      <div v-if="step === 1" class="page-result-stack">
+        <div class="page-result-mark">✓</div>
         <h3>挂失成功</h3>
-        <p style="color: var(--color-text-muted);">账户状态已更新为 LOST</p>
-        <button class="btn-primary" @click="nextStep" style="margin-top: 24px;">继续补办新账户</button>
+        <p class="page-result-subtitle">账户状态已更新为 LOST</p>
+        <PageActionRow primary-text="继续恢复账户" @primary="nextStep" />
       </div>
 
-      <div v-if="step === 2" style="max-width: 520px; margin: 0 auto; text-align: center;">
-        <div style="padding: 32px; border: 1px solid var(--color-border); background: #fafafa;">
-          <h4 style="margin-bottom: 24px;">补办新证券账户</h4>
-          <p style="margin-bottom: 32px; color: var(--color-text-muted);">系统将为投资者生成新账户号并关联原有信息</p>
-          <button class="btn-primary" @click="handleReissue" style="padding: 12px 48px;">确认补办</button>
-        </div>
+      <PageFormBlock v-if="step === 2" width="medium">
+        <PageInfoCard variant="muted" align="center">
+          <h4 class="step-title">恢复原证券账户</h4>
+          <p class="page-result-subtitle">补办后恢复为正常状态，账户号保持不变</p>
+          <PageActionRow primary-text="确认恢复" @primary="handleReissue" />
+        </PageInfoCard>
 
-        <div v-if="newAccount" style="margin-top: 32px; padding: 24px; border: 2px solid #000; text-align: left;">
-          <h4 style="margin: 0 0 16px; color: #000;">补办成功！新账户信息</h4>
-          <p><strong>新证券账户号：</strong><span style="font-size: 18px; font-weight: 600;">{{ newAccount.securitiesAccountNo }}</span></p>
+        <PageInfoCard v-if="newAccount" variant="success">
+          <h4 style="margin: 0 0 16px; color: #000;">补办成功！账户已恢复</h4>
+          <p><strong>证券账户号：</strong><span style="font-size: 18px; font-weight: 600;">{{ newAccount.securitiesAccountNo }}</span></p>
           <p><strong>投资者姓名：</strong>{{ newAccount.investorName }}</p>
           <p><strong>证件号码：</strong>{{ newAccount.idNo }}</p>
           <p><strong>状态：</strong>正常</p>
-        </div>
-      </div>
-    </el-card>
+        </PageInfoCard>
+      </PageFormBlock>
+    </PagePanel>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getSecuritiesAccountByNo, openSecuritiesAccount } from '@/utils/request'
+import { getSecuritiesAccountByNo, reportSecuritiesAccountLost, reissueSecuritiesAccount } from '@/utils/request'
 import { AccountStatus } from '@/constants/enums'
 import AccountStatusTag from '@/components/AccountStatusTag.vue'
+import PageActionRow from '@/components/PageActionRow.vue'
+import PageDetailGrid from '@/components/PageDetailGrid.vue'
+import PageFormBlock from '@/components/PageFormBlock.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import PageInfoCard from '@/components/PageInfoCard.vue'
+import PagePanel from '@/components/PagePanel.vue'
 
 const step = ref(0)
 const form = ref({
@@ -83,6 +86,8 @@ const form = ref({
 const accountInfo = ref(null)
 const newAccount = ref(null)
 
+const normalizeValue = (value) => String(value || '').trim()
+
 const handleQuery = async () => {
   if (!form.value.securitiesAccountNo) {
     ElMessage.warning('请输入原账户号')
@@ -91,6 +96,23 @@ const handleQuery = async () => {
   try {
     const res = await getSecuritiesAccountByNo(form.value.securitiesAccountNo)
     if (res.data) {
+      const inputInvestorName = normalizeValue(form.value.investorName)
+      const inputIdNo = normalizeValue(form.value.idNo)
+      const accountInvestorName = normalizeValue(res.data.investorName)
+      const accountIdNo = normalizeValue(res.data.idNo)
+
+      if (inputInvestorName && inputInvestorName !== accountInvestorName) {
+        accountInfo.value = null
+        ElMessage.error('投资者姓名与账户信息不匹配')
+        return
+      }
+
+      if (inputIdNo && inputIdNo !== accountIdNo) {
+        accountInfo.value = null
+        ElMessage.error('证件号码与账户信息不匹配')
+        return
+      }
+
       accountInfo.value = res.data
       ElMessage.success('查询成功')
     } else {
@@ -103,9 +125,17 @@ const handleQuery = async () => {
 
 const handleLost = async () => {
   if (!accountInfo.value) return
-  accountInfo.value.accountStatus = AccountStatus.LOST
-  ElMessage.success('账户已成功挂失，状态更新为 LOST')
-  step.value = 1
+  try {
+    const res = await reportSecuritiesAccountLost({
+      securitiesAccountNo: accountInfo.value.securitiesAccountNo,
+      idNo: form.value.idNo
+    })
+    accountInfo.value = res.data
+    ElMessage.success('账户已成功挂失')
+    step.value = 1
+  } catch (e) {
+    ElMessage.error(e.message || '挂失失败')
+  }
 }
 
 const nextStep = () => {
@@ -115,17 +145,14 @@ const nextStep = () => {
 const handleReissue = async () => {
   if (!accountInfo.value) return
   try {
-    const res = await openSecuritiesAccount({
-      investorId: accountInfo.value.investorId,
-      investorName: accountInfo.value.investorName,
-      idType: accountInfo.value.idType,
-      idNo: accountInfo.value.idNo,
-      phone: accountInfo.value.phone
+    const res = await reissueSecuritiesAccount({
+      securitiesAccountNo: accountInfo.value.securitiesAccountNo,
+      idNo: form.value.idNo
     })
-    newAccount.value = res.data.account
-    ElMessage.success(`补办成功！新账户号：${newAccount.value.securitiesAccountNo}`)
+    newAccount.value = res.data
+    ElMessage.success(`补办成功！账户 ${newAccount.value.securitiesAccountNo} 已恢复正常`)
   } catch (e) {
-    ElMessage.error('补办失败')
+    ElMessage.error(e.message || '补办失败')
   }
 }
 
@@ -138,4 +165,13 @@ const resetForm = () => {
 </script>
 
 <style scoped>
+.page-form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.step-title {
+  margin-bottom: 24px;
+}
 </style>

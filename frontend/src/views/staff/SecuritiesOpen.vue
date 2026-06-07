@@ -1,14 +1,14 @@
 <!-- src/views/staff/SecuritiesOpen.vue -->
 <template>
   <div>
-    <PageHeader title="开设证券账户" />
+    <PageHeader title="提交证券开户申请" />
 
     <el-card style="margin: 24px auto 0; max-width: 720px; background: var(--color-white);">
       <!-- 步骤条 -->
       <el-steps :active="activeStep" finish-status="success" align-center style="margin-bottom: 32px;">
         <el-step title="信息录入" description="填写投资者基本信息" />
         <el-step title="合规审查" description="设置账户密码" />
-        <el-step title="开户成功" description="完成开户流程" />
+        <el-step title="申请提交" description="等待审批通过后生成账户" />
       </el-steps>
 
       <!-- 步骤1：信息录入 -->
@@ -227,7 +227,7 @@
             :disabled="!compliancePassed || !hasSetPasswords"
             style="margin-left: 12px; border-radius: 0;"
           >
-            确认开户
+            确认提交
           </el-button>
         </div>
       </div>
@@ -235,14 +235,14 @@
       <!-- 步骤3：开户成功 -->
       <div v-show="activeStep === 2">
         <div style="text-align: center; padding: 40px 0;">
-          <el-result icon="success" title="开户成功！" sub-title="恭喜您，证券账户已成功开立">
+          <el-result icon="success" title="申请提交成功！" sub-title="审批通过后系统会自动生成账户">
             <template #extra>
               <div>
                 <p style="font-size: 16px; font-weight: bold; margin-bottom: 16px;">
-                  证券账户号：{{ newAccountNo }}
+                  申请编号：{{ applicationId }}
                 </p>
                 <p style="color: #666; margin-bottom: 24px;">
-                  请妥善保管您的账户信息和密码
+                  请通知审批人员继续完成开户审批
                 </p>
                 <el-button 
                   type="primary" 
@@ -351,8 +351,8 @@ const passwordRules = {
 const complianceCheckResult = ref(null)
 const compliancePassed = ref(false)
 
-// 新生成的账户号
-const newAccountNo = ref('')
+// 提交后的申请编号
+const applicationId = ref('')
 
 // 正则表达式
 const idCardRegex = /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/
@@ -541,9 +541,9 @@ const handleOpen = async () => {
     }
     
     const res = await openSecuritiesAccount(submitData)
-    newAccountNo.value = res.data.accountNo
+    applicationId.value = res.data.applicationId || res.data.accountNo
     activeStep.value = 2
-    ElMessage.success(`开户成功！证券账户号：${res.data.accountNo}`)
+    ElMessage.success(`开户申请已提交，申请编号：${applicationId.value}`)
   } catch (e) {
     ElMessage.error(e.message || '开户失败')
   }
@@ -552,13 +552,29 @@ const handleOpen = async () => {
 // 打印开户凭证
 const printVoucher = () => {
   ElMessageBox.alert(`
-    <div style="text-align: center; padding: 20px;">
-      <h2>证券账户开户凭证</h2>
-      <p><strong>账户类型：</strong>${accountType.value === 'PERSONAL' ? '个人账户' : '法人账户'}</p>
-      <p><strong>账户号码：</strong>${newAccountNo.value}</p>
-      <p><strong>开户时间：</strong>${new Date().toLocaleString()}</p>
-      ${accountType.value === 'PERSONAL' ? `<p><strong>客户姓名：</strong>${formData.value.clientName}</p>` : `<p><strong>企业名称：</strong>${formData.value.corporateName}</p>`}
-      <p style="margin-top: 20px;"><strong>请妥善保管此凭证</strong></p>
+    <div style="padding: 12px 8px 4px;">
+      <div style="max-width: 420px; margin: 0 auto; text-align: center;">
+        <h2 style="margin: 0 0 24px; font-size: 32px; font-weight: 700; color: #4b5563;">证券开户申请凭证</h2>
+        <div style="padding: 24px 28px; border: 1px solid #e5e7eb; background: #fafafa; text-align: left;">
+          <div style="display: flex; align-items: center; margin-bottom: 14px; font-size: 16px; line-height: 1.75;">
+            <span style="width: 104px; color: #6b7280; font-weight: 600;">账户类型</span>
+            <span style="flex: 1; color: #374151;">${accountType.value === 'PERSONAL' ? '个人账户' : '法人账户'}</span>
+          </div>
+          <div style="display: flex; align-items: flex-start; margin-bottom: 14px; font-size: 16px; line-height: 1.75;">
+            <span style="width: 104px; color: #6b7280; font-weight: 600;">申请编号</span>
+            <span style="flex: 1; color: #374151; word-break: break-all;">${applicationId.value}</span>
+          </div>
+          <div style="display: flex; align-items: center; margin-bottom: 14px; font-size: 16px; line-height: 1.75;">
+            <span style="width: 104px; color: #6b7280; font-weight: 600;">提交时间</span>
+            <span style="flex: 1; color: #374151;">${new Date().toLocaleString()}</span>
+          </div>
+          <div style="display: flex; align-items: center; font-size: 16px; line-height: 1.75;">
+            <span style="width: 104px; color: #6b7280; font-weight: 600;">${accountType.value === 'PERSONAL' ? '客户姓名' : '企业名称'}</span>
+            <span style="flex: 1; color: #374151;">${accountType.value === 'PERSONAL' ? formData.value.clientName : formData.value.corporateName}</span>
+          </div>
+        </div>
+        <p style="margin: 20px 0 0; font-size: 16px; font-weight: 600; color: #4b5563;">请妥善保管此凭证</p>
+      </div>
     </div>
   `, '开户凭证', {
     dangerouslyUseHTMLString: true,
@@ -614,9 +630,9 @@ const resetForm = () => {
   complianceCheckResult.value = null
   compliancePassed.value = false
   
-  // 重置步骤和账户号
+  // 重置步骤和申请编号
   activeStep.value = 0
-  newAccountNo.value = ''
+  applicationId.value = ''
 }
 </script>
 

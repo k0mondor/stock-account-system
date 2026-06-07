@@ -13,7 +13,7 @@
 
         <el-form ref="formRef" :model="form" :rules="currentRules" @submit.prevent style="display: flex; flex-direction: column; gap: 20px;">
           <el-form-item label="资金账户号" label-position="top" prop="fundAccountNo" style="margin-bottom: 0;">
-            <el-input v-model="form.fundAccountNo" placeholder="FND00000001" style="width: 100%;" />
+            <el-input v-model="form.fundAccountNo" placeholder="FUND000001" style="width: 100%;" />
           </el-form-item>
           
           <!-- 已移除直接显示的密码输入框，改为弹窗输入 -->

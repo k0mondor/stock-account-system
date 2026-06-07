@@ -3,23 +3,19 @@
   <div>
     <PageHeader title="存款" />
 
-    <el-card style="margin: 24px auto 0; max-width: 520px; background: var(--color-white);">
-      <div style="max-width: 400px; margin: 0 auto;">
-        <el-form ref="formRef" :model="form" :rules="rules" @submit.prevent style="display: flex; flex-direction: column; gap: 20px;">
+    <PagePanel width="narrow">
+      <PageFormBlock>
+        <el-form ref="formRef" :model="form" :rules="rules" class="page-form-stack" @submit.prevent>
           <el-form-item label="资金账户号" label-position="top" prop="fundAccountNo" style="margin-bottom: 0;">
-            <el-input v-model="form.fundAccountNo" placeholder="FND00000001" style="width: 100%;" />
+            <el-input v-model="form.fundAccountNo" placeholder="FUND000001" style="width: 100%;" />
           </el-form-item>
           <el-form-item label="存款金额" label-position="top" prop="amount" style="margin-bottom: 0;">
             <el-input v-model.number="form.amount" type="number" placeholder="请输入金额" style="width: 100%;" />
           </el-form-item>
         </el-form>
-
-        <div style="display: flex; justify-content: center; margin-top: 32px;">
-          <button class="btn-primary" @click="handleDeposit">确认存款</button>
-          <button class="btn-secondary" style="margin-left: 12px;" @click="resetForm">重置</button>
-        </div>
-      </div>
-    </el-card>
+        <PageActionRow primary-text="确认存款" secondary-text="重置" @primary="handleDeposit" @secondary="resetForm" />
+      </PageFormBlock>
+    </PagePanel>
   </div>
 </template>
 
@@ -27,7 +23,10 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { deposit } from '@/utils/request'
+import PageActionRow from '@/components/PageActionRow.vue'
+import PageFormBlock from '@/components/PageFormBlock.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import PagePanel from '@/components/PagePanel.vue'
 
 const form = ref({
   fundAccountNo: '',
@@ -65,4 +64,9 @@ const resetForm = () => {
 </script>
 
 <style scoped>
+.page-form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 </style>

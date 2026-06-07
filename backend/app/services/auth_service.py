@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -69,7 +69,7 @@ def login(db: Session, fund_account_id: str, password: str) -> dict:
             detail=f"证券账户状态为 {current_status}，不允许登录",
         )
 
-    expires_at = datetime.now(UTC) + timedelta(hours=settings.access_token_expire_hours)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=settings.access_token_expire_hours)
     return {
         "verified": True,
         "investor_id": account.investor_id,

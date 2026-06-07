@@ -68,7 +68,7 @@
             <p><strong>证件：</strong>{{ IdTypeLabel[securitiesForm.idType] }} {{ securitiesForm.idNo }}</p>
             <p><strong>电话：</strong>{{ securitiesForm.phone }}</p>
             <p><strong>银行卡：</strong>{{ fundForm.bankCardNo }}</p>
-            <p style="color: var(--color-gray-500); margin-top: 16px;">提交后将同时开设证券账户与资金账户，并自动建立关联。</p>
+            <p style="color: var(--color-gray-500); margin-top: 16px;">提交后将创建联合开户申请，审批通过后自动开设证券账户、资金账户并建立关联。</p>
           </div>
         </div>
 
@@ -86,7 +86,7 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { openSecuritiesAccount, openFundAccount, createAssociation } from '@/utils/request'
+import { submitOpenApplication } from '@/utils/request'
 import { IdTypeLabel } from '@/constants/enums'
 import PageHeader from '@/components/PageHeader.vue'
 
@@ -158,21 +158,18 @@ const prevStep = () => {
 
 const submitJoint = async () => {
   try {
-    const secRes = await openSecuritiesAccount(securitiesForm.value)
-    const secNo = secRes.data.accountNo
-
-    const fundRes = await openFundAccount({
-      investorId: secRes.data.account.investorId,
-      bankCardNo: fundForm.value.bankCardNo
-    })
-    const fundNo = fundRes.data.accountNo
-
-    await createAssociation({
-      securitiesAccountNo: secNo,
-      fundAccountNo: fundNo
+    const res = await submitOpenApplication({
+      investorName: securitiesForm.value.investorName,
+      idType: securitiesForm.value.idType,
+      idNo: securitiesForm.value.idNo,
+      phone: securitiesForm.value.phone,
+      bankCardNo: fundForm.value.bankCardNo,
+      tradePassword: fundForm.value.tradePwd,
+      withdrawPassword: fundForm.value.withdrawPwd,
+      remark: '联合开户申请'
     })
 
-    ElMessage.success(`联合开户成功！证券账户：${secNo}，资金账户：${fundNo}`)
+    ElMessage.success(`联合开户申请已提交，申请编号：${res.data.applicationId}`)
 
     currentStep.value = 0
     securitiesForm.value = { investorName: '', idType: 'ID_CARD', idNo: '', phone: '' }
