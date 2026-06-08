@@ -1,184 +1,133 @@
-<!-- src/views/staff/JointOpen.vue -->
 <template>
   <div>
     <PageHeader title="联合开户" />
 
-    <el-card style="margin: 24px auto 0; max-width: 720px; background: var(--color-white);">
-      <div style="max-width: 460px; margin: 0 auto 32px;">
-        <el-steps :active="currentStep" finish-status="success" align-center>
-          <el-step title="证券账户信息" />
-          <el-step title="资金账户信息" />
-          <el-step title="确认并提交" />
-        </el-steps>
-      </div>
+    <PagePanel width="narrow">
+      <PageInfoCard title="办理说明" style="margin-bottom: 24px;">
+        <p class="inline-tip">
+          本页仅提交联合开户申请。审批通过时由审批人员设置银行卡号、交易密码和取款密码，
+          系统随后连续创建证券账户、资金账户并建立一对一有效绑定。
+        </p>
+      </PageInfoCard>
 
-      <div style="max-width: 400px; margin: 0 auto;">
+      <PageFormBlock>
+        <el-form
+          ref="formRef"
+          :model="form"
+          :rules="rules"
+          class="page-form-stack"
+          @submit.prevent
+        >
+          <el-form-item label="投资者姓名" label-position="top" prop="investorName" style="margin-bottom: 0;">
+            <el-input v-model="form.investorName" placeholder="请输入姓名" style="width: 100%;" />
+          </el-form-item>
+          <el-form-item label="证件类型" label-position="top" prop="idType" style="margin-bottom: 0;">
+            <el-select v-model="form.idType" placeholder="请选择" style="width: 100%;">
+              <el-option
+                v-for="(label, key) in IdTypeLabel"
+                :key="key"
+                :label="label"
+                :value="key"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="证件号码" label-position="top" prop="idNo" style="margin-bottom: 0;">
+            <el-input v-model="form.idNo" placeholder="请输入证件号码" style="width: 100%;" />
+          </el-form-item>
+          <el-form-item label="联系电话" label-position="top" prop="phone" style="margin-bottom: 0;">
+            <el-input v-model="form.phone" placeholder="请输入手机号" style="width: 100%;" />
+          </el-form-item>
+          <el-form-item label="申请备注" label-position="top" prop="remark" style="margin-bottom: 0;">
+            <el-input
+              v-model="form.remark"
+              type="textarea"
+              :rows="3"
+              maxlength="1000"
+              show-word-limit
+              placeholder="可填写开户申请备注"
+              style="width: 100%;"
+            />
+          </el-form-item>
+        </el-form>
 
-        <!-- Step 1: 证券账户 -->
-        <div v-if="currentStep === 0">
-          <el-form ref="securitiesFormRef" :model="securitiesForm" :rules="securitiesRules" @submit.prevent style="display: flex; flex-direction: column; gap: 20px;">
-            <el-form-item label="投资者姓名" label-position="top" prop="investorName" style="margin-bottom: 0;">
-              <el-input v-model="securitiesForm.investorName" placeholder="请输入姓名" style="width: 100%;" />
-            </el-form-item>
-            <el-form-item label="证件类型" label-position="top" prop="idType" style="margin-bottom: 0;">
-              <el-select v-model="securitiesForm.idType" placeholder="请选择" style="width: 100%;">
-                <el-option
-                  v-for="(label, key) in IdTypeLabel"
-                  :key="key"
-                  :label="label"
-                  :value="key"
-                />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="证件号码" label-position="top" prop="idNo" style="margin-bottom: 0;">
-              <el-input v-model="securitiesForm.idNo" placeholder="请输入证件号码" style="width: 100%;" />
-            </el-form-item>
-            <el-form-item label="联系电话" label-position="top" prop="phone" style="margin-bottom: 0;">
-              <el-input v-model="securitiesForm.phone" placeholder="请输入手机号" style="width: 100%;" />
-            </el-form-item>
-          </el-form>
-        </div>
-
-        <!-- Step 2: 资金账户 -->
-        <div v-if="currentStep === 1">
-          <el-form ref="fundFormRef" :model="fundForm" :rules="fundRules" @submit.prevent style="display: flex; flex-direction: column; gap: 20px;">
-            <el-form-item label="银行卡号" label-position="top" prop="bankCardNo" style="margin-bottom: 0;">
-              <el-input v-model="fundForm.bankCardNo" placeholder="请输入银行卡号" style="width: 100%;" />
-            </el-form-item>
-            <el-form-item label="交易密码" label-position="top" prop="tradePwd" style="margin-bottom: 0;">
-              <el-input v-model="fundForm.tradePwd" type="password" placeholder="请输入交易密码" style="width: 100%;" />
-            </el-form-item>
-            <el-form-item label="确认交易密码" label-position="top" prop="tradePwdConfirm" style="margin-bottom: 0;">
-              <el-input v-model="fundForm.tradePwdConfirm" type="password" placeholder="请再次输入" style="width: 100%;" />
-            </el-form-item>
-            <el-form-item label="取款密码" label-position="top" prop="withdrawPwd" style="margin-bottom: 0;">
-              <el-input v-model="fundForm.withdrawPwd" type="password" placeholder="请输入取款密码" style="width: 100%;" />
-            </el-form-item>
-            <el-form-item label="确认取款密码" label-position="top" prop="withdrawPwdConfirm" style="margin-bottom: 0;">
-              <el-input v-model="fundForm.withdrawPwdConfirm" type="password" placeholder="请再次输入" style="width: 100%;" />
-            </el-form-item>
-          </el-form>
-        </div>
-
-        <!-- Step 3: 确认 -->
-        <div v-if="currentStep === 2">
-          <div style="background: var(--color-beige); padding: 24px; border: 1px solid var(--color-gray-200); margin-bottom: 24px; text-align: left;">
-            <h4 style="margin: 0 0 16px; font-weight: 600;">确认信息</h4>
-            <p><strong>投资者：</strong>{{ securitiesForm.investorName }}</p>
-            <p><strong>证件：</strong>{{ IdTypeLabel[securitiesForm.idType] }} {{ securitiesForm.idNo }}</p>
-            <p><strong>电话：</strong>{{ securitiesForm.phone }}</p>
-            <p><strong>银行卡：</strong>{{ fundForm.bankCardNo }}</p>
-            <p style="color: var(--color-gray-500); margin-top: 16px;">提交后将创建联合开户申请，审批通过后自动开设证券账户、资金账户并建立关联。</p>
-          </div>
-        </div>
-
-        <div style="display: flex; justify-content: center; margin-top: 32px;">
-          <button v-if="currentStep > 0" class="btn-secondary" @click="prevStep" style="margin-right: 12px;">上一步</button>
-          <button v-if="currentStep < 2" class="btn-primary" @click="nextStep">下一步</button>
-          <button v-if="currentStep === 2" class="btn-primary" @click="submitJoint">确认提交</button>
-        </div>
-
-      </div>
-    </el-card>
+        <PageActionRow
+          primary-text="提交联合开户申请"
+          secondary-text="重置"
+          :primary-disabled="loading"
+          @primary="submitJoint"
+          @secondary="resetForm"
+        />
+      </PageFormBlock>
+    </PagePanel>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { submitOpenApplication } from '@/utils/request'
 import { IdTypeLabel } from '@/constants/enums'
+import PageActionRow from '@/components/PageActionRow.vue'
+import PageFormBlock from '@/components/PageFormBlock.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import PageInfoCard from '@/components/PageInfoCard.vue'
+import PagePanel from '@/components/PagePanel.vue'
 
-const currentStep = ref(0)
-
-const securitiesForm = ref({
+const buildInitialForm = () => ({
   investorName: '',
   idType: 'ID_CARD',
   idNo: '',
-  phone: ''
+  phone: '',
+  remark: '联合开户申请'
 })
 
-const fundForm = ref({
-  bankCardNo: '',
-  tradePwd: '',
-  tradePwdConfirm: '',
-  withdrawPwd: '',
-  withdrawPwdConfirm: ''
-})
+const form = reactive(buildInitialForm())
+const formRef = ref(null)
+const loading = ref(false)
 
-const securitiesRules = {
+const rules = {
   investorName: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
   idType: [{ required: true, message: '请选择证件类型', trigger: 'change' }],
   idNo: [{ required: true, message: '请输入证件号码', trigger: 'blur' }],
   phone: [{ required: true, message: '请输入联系电话', trigger: 'blur' }]
 }
 
-const fundRules = {
-  bankCardNo: [{ required: true, message: '请输入银行卡号', trigger: 'blur' }],
-  tradePwd: [{ required: true, message: '请输入交易密码', trigger: 'blur' }],
-  tradePwdConfirm: [
-    { required: true, message: '请确认交易密码', trigger: 'blur' },
-    {
-      validator: (rule, value, callback) => {
-        if (value !== fundForm.value.tradePwd) callback(new Error('两次密码不一致'))
-        else callback()
-      },
-      trigger: 'blur'
-    }
-  ],
-  withdrawPwd: [{ required: true, message: '请输入取款密码', trigger: 'blur' }],
-  withdrawPwdConfirm: [
-    { required: true, message: '请确认取款密码', trigger: 'blur' },
-    {
-      validator: (rule, value, callback) => {
-        if (value !== fundForm.value.withdrawPwd) callback(new Error('两次密码不一致'))
-        else callback()
-      },
-      trigger: 'blur'
-    }
-  ]
-}
-
-const securitiesFormRef = ref(null)
-const fundFormRef = ref(null)
-
-const nextStep = async () => {
-  if (currentStep.value === 0) {
-    await securitiesFormRef.value.validate()
-  } else if (currentStep.value === 1) {
-    await fundFormRef.value.validate()
-  }
-  currentStep.value++
-}
-
-const prevStep = () => {
-  currentStep.value--
-}
-
 const submitJoint = async () => {
+  await formRef.value.validate()
+  loading.value = true
   try {
     const res = await submitOpenApplication({
-      investorName: securitiesForm.value.investorName,
-      idType: securitiesForm.value.idType,
-      idNo: securitiesForm.value.idNo,
-      phone: securitiesForm.value.phone,
-      bankCardNo: fundForm.value.bankCardNo,
-      tradePassword: fundForm.value.tradePwd,
-      withdrawPassword: fundForm.value.withdrawPwd,
-      remark: '联合开户申请'
+      investorName: form.investorName.trim(),
+      idType: form.idType,
+      idNo: form.idNo.trim(),
+      phone: form.phone.trim(),
+      remark: form.remark.trim() || '联合开户申请'
     })
-
     ElMessage.success(`联合开户申请已提交，申请编号：${res.data.applicationId}`)
-
-    currentStep.value = 0
-    securitiesForm.value = { investorName: '', idType: 'ID_CARD', idNo: '', phone: '' }
-    fundForm.value = { bankCardNo: '', tradePwd: '', tradePwdConfirm: '', withdrawPwd: '', withdrawPwdConfirm: '' }
-  } catch (e) {
-    ElMessage.error(e.message || '开户失败')
+    resetForm()
+  } catch (error) {
+    ElMessage.error(error.message || '开户申请提交失败')
+  } finally {
+    loading.value = false
   }
+}
+
+const resetForm = () => {
+  Object.assign(form, buildInitialForm())
+  formRef.value?.resetFields()
 }
 </script>
 
 <style scoped>
+.page-form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.inline-tip {
+  margin: 0;
+  line-height: 1.7;
+  color: var(--color-text-muted);
+}
 </style>

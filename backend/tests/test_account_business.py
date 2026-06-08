@@ -21,7 +21,7 @@ from app.core.enums import (
 )
 from app.core.auth_tokens import issue_access_token, verify_access_token
 from app.core.auth_dependencies import require_staff_actor
-from app.core.security import hash_password, verify_password
+from app.core.security import verify_password
 from app.core.time import utc_now
 from app.core.request_context import reset_request_id, set_request_id
 from app.db.session import Base
@@ -277,7 +277,6 @@ class AccountBusinessFlowTest(unittest.TestCase):
         second_security = SecuritiesAccount(
             security_account_id="SEC_DUPLICATE",
             investor_id="CUST_TEST",
-            security_password_hash=hash_password("duplicate123"),
         )
         self.db.add(second_security)
         self.db.flush()
@@ -567,34 +566,6 @@ class AccountBusinessFlowTest(unittest.TestCase):
                 customer_id_number="wrong-id-number",
                 password_type=PasswordType.TRADE,
                 new_password="another-password",
-                reason="身份校验测试",
-            )
-        self.assertEqual(wrong_identity.exception.status_code, 409)
-
-    def test_staff_can_reset_security_password_after_identity_check(self):
-        application = self._joint_open()
-        security_account_service.reset_password_by_staff(
-            self.db,
-            application.security_account_id,
-            staff_id="STAFF_TEST",
-            customer_id_number="110101200001010001",
-            new_password="security-reset",
-            reason="客户忘记密码",
-        )
-        self.db.commit()
-
-        security = self.db.get(SecuritiesAccount, application.security_account_id)
-        self.assertTrue(
-            verify_password("security-reset", security.security_password_hash)
-        )
-
-        with self.assertRaises(HTTPException) as wrong_identity:
-            security_account_service.reset_password_by_staff(
-                self.db,
-                application.security_account_id,
-                staff_id="STAFF_TEST",
-                customer_id_number="wrong-id-number",
-                new_password="another-security-password",
                 reason="身份校验测试",
             )
         self.assertEqual(wrong_identity.exception.status_code, 409)

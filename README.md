@@ -166,7 +166,7 @@ VITE_DEV_BEARER_TOKEN=replace-with-a-shared-service-token
 - 审批列表查询、审批通过、审批驳回
 - 审批通过后联合创建证券账户、资金账户并建立唯一有效绑定
 - 联合销户页面与联合销户接口联调
-- 证券账户查询、证券密码重置、证券挂失/补办、证券持仓查询
+- 证券账户查询、证券挂失/补办、证券持仓查询
 - 资金账户查询、资金存款、资金取款、资金密码修改、资金密码重置、资金流水查询
 - 关联查询、关联校验、关联历史查询
 - 普通冻结/解冻、账户状态校验、状态历史查询
@@ -255,7 +255,6 @@ VITE_DEV_BEARER_TOKEN=replace-with-a-shared-service-token
 - `POST /api/v1/account/fund-accounts/{fund_account_id}/lost`
 - `POST /api/v1/account/fund-accounts/{fund_account_id}/reissue`
 - `GET /api/v1/account/security-accounts/{security_account_id}`
-- `POST /api/v1/account/security-accounts/{security_account_id}/password/reset`
 - `GET /api/v1/account/security-accounts/{security_account_id}/positions`
 - `POST /api/v1/account/security-accounts/{security_account_id}/lost`
 - `POST /api/v1/account/security-accounts/{security_account_id}/reissue`

@@ -160,7 +160,6 @@ def approve_application(
             db,
             security_account_id=security_account_id,
             investor_id=application.customer_id,
-            security_password=trade_password,
         )
         fund_account_service.create_fund_account(
             db,

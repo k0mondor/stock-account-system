@@ -14,7 +14,6 @@
           <el-sub-menu index="securities">
             <template #title><BiText :text="UiText.securities" /></template>
             <el-menu-item index="/staff/securities/query"><BiText text="证券账户查询/SECURITIES QUERY" /></el-menu-item>
-            <el-menu-item index="/staff/securities/change-pwd"><BiText text="证券密码重置/SECURITY PASSWORD" /></el-menu-item>
           </el-sub-menu>
           <el-sub-menu index="fund">
             <template #title><BiText :text="UiText.fund" /></template>
@@ -52,7 +51,6 @@
                   <div class="mega-column">
                     <span class="column-title"><BiText text="证券账户/SECURITIES" /></span>
                     <router-link to="/staff/securities/query" class="mega-link"><BiText text="证券账户查询/SECURITIES QUERY" /> <span class="arrow">&rarr;</span></router-link>
-                    <router-link to="/staff/securities/change-pwd" class="mega-link"><BiText text="证券密码重置/SECURITY PASSWORD" /> <span class="arrow">&rarr;</span></router-link>
                   </div>
 
                   <div class="mega-column">

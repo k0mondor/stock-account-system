@@ -1,5 +1,4 @@
 import { httpClient } from '@/api/httpClient'
-import { resetSecurityPasswordByStaff as resetSecurityPasswordByStaffHttp } from '@/services/accountService'
 import {
   accountApiPrefix,
   buildOperator,
@@ -85,15 +84,4 @@ export function reissueSecuritiesAccount(data) {
     const customer = await fetchCustomerHttp(account.investor_id)
     return mapSecuritiesAccountHttp(account, customer)
   })
-}
-
-export function resetSecurityPasswordByStaff(data) {
-  return resetSecurityPasswordByStaffHttp(data).then(() => ({
-    code: 200,
-    message: 'success',
-    data: {
-      securitiesAccountNo: data.securitiesAccountNo,
-      status: 'SUCCESS'
-    }
-  }))
 }

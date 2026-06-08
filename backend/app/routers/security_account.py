@@ -9,11 +9,7 @@ from app.core.auth_dependencies import (
 )
 from app.schemas.common import ApiResponse
 from app.schemas.fund_account import AccountCloseRequest, AccountStateChangeRequest
-from app.schemas.security_account import (
-    SecuritiesAccountResponse,
-    SecurityPasswordResetRequest,
-    SecurityPasswordResetResponse,
-)
+from app.schemas.security_account import SecuritiesAccountResponse
 from app.schemas.security_position import (
     PositionChangeRequest,
     PositionChangeResponse,
@@ -88,40 +84,6 @@ def close_security_account(
     raise HTTPException(
         status_code=status.HTTP_409_CONFLICT,
         detail="请使用联合销户接口",
-    )
-
-
-@router.post(
-    "/{security_account_id}/password/reset",
-    response_model=ApiResponse[SecurityPasswordResetResponse],
-    summary="工作人员代理重置证券账户密码",
-)
-def reset_security_password_by_staff(
-    security_account_id: str,
-    payload: SecurityPasswordResetRequest,
-    claims: dict = Depends(require_service_token),
-    db: Session = Depends(get_db),
-) -> ApiResponse[SecurityPasswordResetResponse]:
-    del claims
-    try:
-        security_account_service.reset_password_by_staff(
-            db,
-            security_account_id,
-            staff_id=payload.staff_id,
-            customer_id_number=payload.customer_id_number,
-            new_password=payload.new_password,
-            reason=payload.reason,
-        )
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
-    return ApiResponse.ok(
-        SecurityPasswordResetResponse(
-            security_account_id=security_account_id,
-            changed=True,
-        ),
-        "密码重置成功",
     )
 
 

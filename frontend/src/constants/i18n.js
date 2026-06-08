@@ -4,7 +4,6 @@ export function bi(zh, enUpper) {
 
 export const PageTitleBi = {
   '证券账户挂失补办': bi('证券账户挂失补办', 'SECURITIES LOSS & REISSUE'),
-  '证券账户密码重置': bi('证券账户密码重置', 'SECURITIES PASSWORD RESET'),
   '联合开户': bi('联合开户', 'JOINT OPENING'),
   '联合销户': bi('联合销户', 'JOINT CLOSURE'),
   '资金账户查询': bi('资金账户查询', 'FUND ACCOUNT QUERY'),
