@@ -1,6 +1,7 @@
 from sqlalchemy import Engine, Index, inspect, text
 
 from app.models.association import AccountAssociation
+from app.models.base_data import Customer
 from app.models.fund_account import FundTransactionRecord
 
 
@@ -15,6 +16,10 @@ def apply_lightweight_migrations(engine: Engine) -> None:
         item["name"]
         for item in inspector.get_columns(AccountAssociation.__tablename__)
     }
+    customer_columns = {
+        item["name"]
+        for item in inspector.get_columns(Customer.__tablename__)
+    }
     with engine.begin() as connection:
         if "operator_staff_id" not in transaction_columns:
             connection.execute(
@@ -28,6 +33,61 @@ def apply_lightweight_migrations(engine: Engine) -> None:
                 text(
                     "ALTER TABLE account_associations "
                     "ADD COLUMN disassociated_at DATETIME"
+                )
+            )
+        if "id_type" not in customer_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE customers "
+                    "ADD COLUMN id_type VARCHAR(32)"
+                )
+            )
+            connection.execute(
+                text(
+                    "UPDATE customers SET id_type = 'ID_CARD' "
+                    "WHERE id_type IS NULL"
+                )
+            )
+        if "gender" not in customer_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE customers "
+                    "ADD COLUMN gender VARCHAR(16)"
+                )
+            )
+        if "address" not in customer_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE customers "
+                    "ADD COLUMN address VARCHAR(255)"
+                )
+            )
+        if "occupation" not in customer_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE customers "
+                    "ADD COLUMN occupation VARCHAR(64)"
+                )
+            )
+        if "education_level" not in customer_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE customers "
+                    "ADD COLUMN education_level VARCHAR(32)"
+                )
+            )
+        if "employer" not in customer_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE customers "
+                    "ADD COLUMN employer VARCHAR(128)"
+                )
+            )
+        if "agent_id_number" not in customer_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE customers "
+                    "ADD COLUMN agent_id_number VARCHAR(32)"
                 )
             )
         if engine.dialect.name == "mysql":

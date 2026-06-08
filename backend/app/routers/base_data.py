@@ -5,7 +5,13 @@ from sqlalchemy.orm import Session
 
 from app.models.base_data import Customer, Staff
 from app.core.auth_dependencies import require_service_token
-from app.schemas.base_data import CustomerCreate, CustomerRead, StaffCreate, StaffRead
+from app.schemas.base_data import (
+    CustomerCreate,
+    CustomerRead,
+    CustomerUpdate,
+    StaffCreate,
+    StaffRead,
+)
 from app.schemas.common import ApiResponse
 from app.db.session import get_db
 
@@ -54,6 +60,37 @@ def get_customer(customer_id: str, db: Session = Depends(get_db)) -> ApiResponse
     if not customer:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="客户不存在")
     return ApiResponse.ok(CustomerRead.model_validate(customer))
+
+
+@router.put("/customers/{customer_id}", response_model=ApiResponse[CustomerRead])
+def update_customer(
+    customer_id: str,
+    payload: CustomerUpdate,
+    db: Session = Depends(get_db),
+) -> ApiResponse[CustomerRead]:
+    customer = db.get(Customer, customer_id)
+    if not customer:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="客户不存在")
+
+    updates = payload.model_dump(mode="json", exclude_unset=True)
+    if not updates:
+        return ApiResponse.ok(CustomerRead.model_validate(customer), "客户信息未发生变化")
+
+    for field, value in updates.items():
+        setattr(customer, field, value)
+
+    try:
+        db.add(customer)
+        db.commit()
+        db.refresh(customer)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="客户信息更新失败",
+        )
+
+    return ApiResponse.ok(CustomerRead.model_validate(customer), "客户信息更新成功")
 
 
 @router.post("/staff", response_model=ApiResponse[StaffRead], status_code=status.HTTP_201_CREATED)

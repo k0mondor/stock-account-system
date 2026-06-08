@@ -35,7 +35,18 @@ export function submitOpenApplication(data) {
     const applicantName = data.investorName || data.clientName || data.corporateName
     const idNumber = data.idNo || data.idCardNo || data.businessLicenseNo
     const phone = data.phone || data.legalPhone
-    const customer = await ensureCustomerHttp({ applicantName, idNumber, phone })
+    const customer = await ensureCustomerHttp({
+      applicantName,
+      idNumber,
+      phone,
+      idType: data.idType,
+      gender: data.gender,
+      address: data.address,
+      occupation: data.occupation,
+      educationLevel: data.educationLevel,
+      employer: data.employer,
+      agentIdNumber: data.agentIdNumber
+    })
     const application = await httpClient.post(`${accountApiPrefix}/applications`, {
       customer_id: customer.customer_id,
       applicant_name: customer.customer_name,

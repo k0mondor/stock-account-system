@@ -81,8 +81,14 @@ class AccountBusinessFlowTest(unittest.TestCase):
             Customer(
                 customer_id="CUST_TEST",
                 customer_name="测试客户",
+                id_type="ID_CARD",
                 id_number="110101200001010001",
                 phone="13800000001",
+                gender="男",
+                address="北京市朝阳区示例路 1 号",
+                occupation="软件工程师",
+                education_level="本科",
+                employer="示例科技有限公司",
             )
         )
         self.db.add(
@@ -610,8 +616,14 @@ class AccountBusinessFlowTest(unittest.TestCase):
             Customer(
                 customer_id="CUST_OTHER",
                 customer_name="其他客户",
+                id_type="ID_CARD",
                 id_number="110101200001010002",
                 phone="13800000002",
+                gender="女",
+                address="北京市海淀区示例路 2 号",
+                occupation="产品经理",
+                education_level="硕士",
+                employer="另一家科技公司",
             )
         )
         association = self.db.scalar(

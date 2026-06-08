@@ -1,8 +1,15 @@
 CREATE TABLE IF NOT EXISTS customers (
     customer_id VARCHAR(32) PRIMARY KEY,
     customer_name VARCHAR(64) NOT NULL,
+    id_type VARCHAR(32),
     id_number VARCHAR(32) NOT NULL UNIQUE,
     phone VARCHAR(20) NOT NULL,
+    gender VARCHAR(16),
+    address VARCHAR(255),
+    occupation VARCHAR(64),
+    education_level VARCHAR(32),
+    employer VARCHAR(128),
+    agent_id_number VARCHAR(32),
     customer_status VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL

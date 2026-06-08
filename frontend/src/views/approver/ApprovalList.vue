@@ -53,17 +53,17 @@
 
     <!-- 审批对话框 -->
     <el-dialog v-model="dialogVisible" title="审批操作" width="400px">
-      <el-form :model="approveForm" label-width="80px">
+      <el-form ref="approveFormRef" :model="approveForm" :rules="approveRules" label-width="80px">
         <el-form-item label="审批意见">
           <el-input v-model="approveForm.comment" type="textarea" :rows="3" />
         </el-form-item>
-        <el-form-item label="银行卡号">
+        <el-form-item label="银行卡号" prop="bankCardNo">
           <el-input v-model="approveForm.bankCardNo" placeholder="审批通过时必填" />
         </el-form-item>
-        <el-form-item label="交易密码">
+        <el-form-item label="交易密码" prop="tradePassword">
           <el-input v-model="approveForm.tradePassword" type="password" show-password placeholder="审批通过时必填" />
         </el-form-item>
-        <el-form-item label="取款密码">
+        <el-form-item label="取款密码" prop="withdrawPassword">
           <el-input v-model="approveForm.withdrawPassword" type="password" show-password placeholder="审批通过时必填" />
         </el-form-item>
       </el-form>
@@ -109,12 +109,27 @@ const hasSearched = ref(false)
 
 const dialogVisible = ref(false)
 const currentApply = ref(null)
+const approveFormRef = ref(null)
 const approveForm = ref({
   comment: '',
   bankCardNo: '',
   tradePassword: '',
   withdrawPassword: ''
 })
+const approveRules = {
+  bankCardNo: [
+    { required: true, message: '请输入银行卡号', trigger: 'blur' },
+    { min: 8, message: '银行卡号至少 8 位', trigger: 'blur' }
+  ],
+  tradePassword: [
+    { required: true, message: '请输入交易密码', trigger: 'blur' },
+    { min: 6, message: '交易密码至少 6 位', trigger: 'blur' }
+  ],
+  withdrawPassword: [
+    { required: true, message: '请输入取款密码', trigger: 'blur' },
+    { min: 6, message: '取款密码至少 6 位', trigger: 'blur' }
+  ]
+}
 
 const emptyText = computed(() => {
   return hasSearched.value ? '当前没有可显示的审批申请' : '点击查询加载审批列表'
@@ -159,16 +174,13 @@ const submitApprove = async (status) => {
 
   try {
     if (status === 'APPROVED') {
-      if (!approveForm.value.bankCardNo || !approveForm.value.tradePassword || !approveForm.value.withdrawPassword) {
-        ElMessage.error('审批通过时请补全银行卡号、交易密码和取款密码')
-        return
-      }
+      await approveFormRef.value?.validate()
       const res = await approveApplication({
         applicationId: currentApply.value.applyId,
         comment: approveForm.value.comment,
-        bankCardNo: approveForm.value.bankCardNo,
-        tradePassword: approveForm.value.tradePassword,
-        withdrawPassword: approveForm.value.withdrawPassword
+        bankCardNo: approveForm.value.bankCardNo.trim(),
+        tradePassword: approveForm.value.tradePassword.trim(),
+        withdrawPassword: approveForm.value.withdrawPassword.trim()
       })
       ElMessage.success(
         `审批通过，已生成账户：${res.data.securitiesAccountNo || '-'} / ${res.data.fundAccountNo || '-'}`

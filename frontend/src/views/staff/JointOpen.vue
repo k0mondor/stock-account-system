@@ -5,7 +5,7 @@
     <PagePanel width="narrow">
       <PageInfoCard title="办理说明" style="margin-bottom: 24px;">
         <p class="inline-tip">
-          本页仅提交联合开户申请。审批通过时由审批人员设置银行卡号、交易密码和取款密码，
+          本页录入自然人客户资料并提交联合开户申请。审批通过时由审批人员设置银行卡号、交易密码和取款密码，
           系统随后连续创建证券账户、资金账户并建立一对一有效绑定。
         </p>
       </PageInfoCard>
@@ -36,6 +36,37 @@
           </el-form-item>
           <el-form-item label="联系电话" label-position="top" prop="phone" style="margin-bottom: 0;">
             <el-input v-model="form.phone" placeholder="请输入手机号" style="width: 100%;" />
+          </el-form-item>
+          <el-form-item label="性别" label-position="top" prop="gender" style="margin-bottom: 0;">
+            <el-select v-model="form.gender" placeholder="请选择性别" style="width: 100%;">
+              <el-option label="男" value="男" />
+              <el-option label="女" value="女" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="联系地址" label-position="top" prop="address" style="margin-bottom: 0;">
+            <el-input v-model="form.address" placeholder="请输入开户地址或常住地址" style="width: 100%;" />
+          </el-form-item>
+          <el-form-item label="职业" label-position="top" prop="occupation" style="margin-bottom: 0;">
+            <el-input v-model="form.occupation" placeholder="请输入职业" style="width: 100%;" />
+          </el-form-item>
+          <el-form-item label="学历" label-position="top" prop="educationLevel" style="margin-bottom: 0;">
+            <el-select v-model="form.educationLevel" placeholder="请选择学历" style="width: 100%;">
+              <el-option label="高中及以下" value="高中及以下" />
+              <el-option label="大专" value="大专" />
+              <el-option label="本科" value="本科" />
+              <el-option label="硕士" value="硕士" />
+              <el-option label="博士及以上" value="博士及以上" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="工作单位" label-position="top" prop="employer" style="margin-bottom: 0;">
+            <el-input v-model="form.employer" placeholder="请输入工作单位" style="width: 100%;" />
+          </el-form-item>
+          <el-form-item label="代办人证件号" label-position="top" prop="agentIdNumber" style="margin-bottom: 0;">
+            <el-input
+              v-model="form.agentIdNumber"
+              placeholder="如为代办开户请填写，否则可留空"
+              style="width: 100%;"
+            />
           </el-form-item>
           <el-form-item label="申请备注" label-position="top" prop="remark" style="margin-bottom: 0;">
             <el-input
@@ -78,6 +109,12 @@ const buildInitialForm = () => ({
   idType: 'ID_CARD',
   idNo: '',
   phone: '',
+  gender: '',
+  address: '',
+  occupation: '',
+  educationLevel: '',
+  employer: '',
+  agentIdNumber: '',
   remark: '联合开户申请'
 })
 
@@ -89,7 +126,12 @@ const rules = {
   investorName: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
   idType: [{ required: true, message: '请选择证件类型', trigger: 'change' }],
   idNo: [{ required: true, message: '请输入证件号码', trigger: 'blur' }],
-  phone: [{ required: true, message: '请输入联系电话', trigger: 'blur' }]
+  phone: [{ required: true, message: '请输入联系电话', trigger: 'blur' }],
+  gender: [{ required: true, message: '请选择性别', trigger: 'change' }],
+  address: [{ required: true, message: '请输入联系地址', trigger: 'blur' }],
+  occupation: [{ required: true, message: '请输入职业', trigger: 'blur' }],
+  educationLevel: [{ required: true, message: '请选择学历', trigger: 'change' }],
+  employer: [{ required: true, message: '请输入工作单位', trigger: 'blur' }]
 }
 
 const submitJoint = async () => {
@@ -101,6 +143,12 @@ const submitJoint = async () => {
       idType: form.idType,
       idNo: form.idNo.trim(),
       phone: form.phone.trim(),
+      gender: form.gender,
+      address: form.address.trim(),
+      occupation: form.occupation.trim(),
+      educationLevel: form.educationLevel,
+      employer: form.employer.trim(),
+      agentIdNumber: form.agentIdNumber.trim(),
       remark: form.remark.trim() || '联合开户申请'
     })
     ElMessage.success(`联合开户申请已提交，申请编号：${res.data.applicationId}`)

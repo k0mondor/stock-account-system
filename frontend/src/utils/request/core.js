@@ -147,6 +147,28 @@ export function buildOperator(data = {}) {
   }
 }
 
+function trimOptional(value) {
+  if (value == null) return null
+  const normalized = String(value).trim()
+  return normalized || null
+}
+
+function buildCustomerPayload(data = {}) {
+  return {
+    customer_name: trimOptional(data.applicantName),
+    id_type: trimOptional(data.idType) || 'ID_CARD',
+    id_number: trimOptional(data.idNumber),
+    phone: trimOptional(data.phone),
+    gender: trimOptional(data.gender),
+    address: trimOptional(data.address),
+    occupation: trimOptional(data.occupation),
+    education_level: trimOptional(data.educationLevel),
+    employer: trimOptional(data.employer),
+    agent_id_number: trimOptional(data.agentIdNumber),
+    customer_status: 'ACTIVE'
+  }
+}
+
 async function listCustomersHttp() {
   const result = await httpClient.get(`${accountApiPrefix}/customers`)
   return normalizeArrayResponse(result)
@@ -160,23 +182,53 @@ export async function fetchCustomerHttp(customerId) {
   return customer
 }
 
-export async function ensureCustomerHttp({ applicantName, idNumber, phone }) {
-  if (!applicantName || !idNumber || !phone) {
+export async function ensureCustomerHttp(data) {
+  const payload = buildCustomerPayload(data)
+  if (
+    !payload.customer_name
+    || !payload.id_number
+    || !payload.phone
+    || !payload.gender
+    || !payload.address
+    || !payload.occupation
+    || !payload.education_level
+    || !payload.employer
+  ) {
     throw new Error('开户申请缺少必要的客户信息')
   }
   const customers = await listCustomersHttp()
-  const existing = customers.find(item => item.id_number === idNumber)
+  const existing = customers.find(item => item.id_number === payload.id_number)
   if (existing) {
-    customerCache.set(existing.customer_id, existing)
-    return existing
+    const patch = {}
+    const fieldsToSync = [
+      'customer_name',
+      'phone',
+      'id_type',
+      'gender',
+      'address',
+      'occupation',
+      'education_level',
+      'employer',
+      'agent_id_number'
+    ]
+    for (const field of fieldsToSync) {
+      const nextValue = payload[field]
+      const currentValue = existing[field] ?? null
+      if (nextValue !== currentValue) {
+        patch[field] = nextValue
+      }
+    }
+
+    const syncedCustomer = Object.keys(patch).length
+      ? await httpClient.put(`${accountApiPrefix}/customers/${existing.customer_id}`, patch)
+      : existing
+    customerCache.set(existing.customer_id, syncedCustomer)
+    return syncedCustomer
   }
 
   const customer = await httpClient.post(`${accountApiPrefix}/customers`, {
     customer_id: generateId('CUST'),
-    customer_name: applicantName,
-    id_number: idNumber,
-    phone,
-    customer_status: 'ACTIVE'
+    ...payload
   })
   customerCache.set(customer.customer_id, customer)
   return customer
@@ -187,7 +239,7 @@ export function mapSecuritiesAccountHttp(account, customer) {
     securitiesAccountNo: account.security_account_id,
     investorId: account.investor_id,
     investorName: customer?.customer_name || account.investor_id,
-    idType: 'ID_CARD',
+    idType: customer?.id_type || 'ID_CARD',
     idNo: customer?.id_number || '',
     phone: customer?.phone || '',
     accountStatus: account.account_status,
