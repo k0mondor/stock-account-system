@@ -1,7 +1,9 @@
 from sqlalchemy import Engine, Index, inspect, text
 
+from app.core.security import hash_password
 from app.models.association import AccountAssociation
 from app.models.fund_account import FundTransactionRecord
+from app.models.security_account import SecuritiesAccount
 
 
 def apply_lightweight_migrations(engine: Engine) -> None:
@@ -15,6 +17,11 @@ def apply_lightweight_migrations(engine: Engine) -> None:
         item["name"]
         for item in inspector.get_columns(AccountAssociation.__tablename__)
     }
+    security_columns = {
+        item["name"]
+        for item in inspector.get_columns(SecuritiesAccount.__tablename__)
+    }
+    default_security_password_hash = hash_password("trade123")
 
     with engine.begin() as connection:
         if "operator_staff_id" not in transaction_columns:
@@ -30,6 +37,21 @@ def apply_lightweight_migrations(engine: Engine) -> None:
                     "ALTER TABLE account_associations "
                     "ADD COLUMN disassociated_at DATETIME"
                 )
+            )
+        if "security_password_hash" not in security_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE securities_accounts "
+                    "ADD COLUMN security_password_hash VARCHAR(256)"
+                )
+            )
+            connection.execute(
+                text(
+                    "UPDATE securities_accounts "
+                    "SET security_password_hash = :default_hash "
+                    "WHERE security_password_hash IS NULL"
+                ),
+                {"default_hash": default_security_password_hash},
             )
 
         if engine.dialect.name == "mysql":

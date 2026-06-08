@@ -45,8 +45,13 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { UiText } from '@/constants/i18n'
 import BiText from '@/components/BiText.vue'
+import {
+  clearCurrentStaffSession,
+  ensureCurrentStaffSession
+} from '@/utils/request/core'
 
 const router = useRouter()
 
@@ -57,12 +62,24 @@ const titleChars = [
   { zh: '录', en: '录' }
 ]
 
-const loginAsStaff = () => {
-  router.push('/staff/securities/query')
+const loginAsStaff = async () => {
+  try {
+    await ensureCurrentStaffSession(['STAFF', 'ADMIN'])
+    router.push('/staff/joint/open')
+  } catch (error) {
+    clearCurrentStaffSession()
+    ElMessage.error(error.message || '未找到可用的工作人员账号')
+  }
 }
 
-const loginAsApprover = () => {
-  router.push('/approver')
+const loginAsApprover = async () => {
+  try {
+    await ensureCurrentStaffSession(['APPROVER', 'ADMIN'])
+    router.push('/approver')
+  } catch (error) {
+    clearCurrentStaffSession()
+    ElMessage.error(error.message || '未找到可用的审批人员账号')
+  }
 }
 </script>
 

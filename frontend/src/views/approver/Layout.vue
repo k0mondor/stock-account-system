@@ -15,7 +15,12 @@
       </el-aside>
       <el-container>
         <el-header style="border-bottom: 1px solid #e5e4e7; display: flex; align-items: center; justify-content: space-between; padding: 0 24px;">
-        <span style="color: var(--color-gray-500);"><BiText :text="UiText.approverArea" /></span>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="color: var(--color-gray-500);"><BiText :text="UiText.approverArea" /></span>
+          <span v-if="currentApproverLabel" style="font-size: 13px; color: var(--color-gray-500);">
+            当前审批员：{{ currentApproverLabel }}
+          </span>
+        </div>
           <div style="display: flex; align-items: center; gap: 10px;">
             <el-button link @click="helpVisible = true" :aria-label="UiText.help">
               <el-icon><QuestionFilled /></el-icon>
@@ -37,14 +42,24 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { QuestionFilled } from '@element-plus/icons-vue'
 import HelpDrawer from '@/components/HelpDrawer.vue'
 import { UiText } from '@/constants/i18n'
 import BiText from '@/components/BiText.vue'
+import { clearCurrentStaffSession, readCurrentStaffSession } from '@/utils/request/core'
 
 const router = useRouter()
-const logout = () => router.push('/login')
+const currentStaff = ref(readCurrentStaffSession())
+const currentApproverLabel = computed(() => {
+  const staff = currentStaff.value
+  if (!staff?.staff_id) return ''
+  return staff.staff_name ? `${staff.staff_name} (${staff.staff_id})` : staff.staff_id
+})
+const logout = () => {
+  clearCurrentStaffSession()
+  router.push('/login')
+}
 
 const helpVisible = ref(false)
 

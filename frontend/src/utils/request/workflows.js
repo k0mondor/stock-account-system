@@ -1,15 +1,16 @@
 import { httpClient } from '@/api/httpClient'
 import {
-  bindAssociation as bindAssociationHttp,
+  changeStatus as changeStatusHttp,
+  jointClose as jointCloseHttp,
   checkAssociationValid as checkAssociationValidHttp,
+  queryAssociationDetail as queryAssociationDetailHttp,
+  queryAssociationHistory as queryAssociationHistoryHttp,
   checkStatus as checkStatusHttp,
   fetchOperationLogs as fetchOperationLogsHttp,
   queryAssociations as queryAssociationsHttp,
-  unbindAssociation as unbindAssociationHttp,
   writeOperationLog as writeOperationLogHttp,
 } from '@/services/accountService'
 import {
-  DEFAULT_APPROVER_ID,
   accountApiPrefix,
   ensureCustomerHttp,
   httpOk,
@@ -21,8 +22,12 @@ export function getAssociations(params) {
   return queryAssociationsHttp(params).then(httpOk)
 }
 
-export function createAssociation(data) {
-  return bindAssociationHttp(data).then(httpOk)
+export function getAssociationDetail(params) {
+  return queryAssociationDetailHttp(params).then(httpOk)
+}
+
+export function getAssociationHistory(params) {
+  return queryAssociationHistoryHttp(params).then(httpOk)
 }
 
 export function submitOpenApplication(data) {
@@ -75,7 +80,6 @@ export function getApplications(params = {}) {
 export function approveApplication(data) {
   return wrapHttp(async () => {
     const result = await httpClient.post(`${accountApiPrefix}/applications/${data.applicationId}/approve`, {
-      approver_id: data.approverId || DEFAULT_APPROVER_ID,
       approval_opinion: data.comment || null,
       bank_card_no: data.bankCardNo,
       trade_password: data.tradePassword,
@@ -93,7 +97,6 @@ export function approveApplication(data) {
 export function rejectApplication(data) {
   return wrapHttp(async () => {
     const result = await httpClient.post(`${accountApiPrefix}/applications/${data.applicationId}/reject`, {
-      approver_id: data.approverId || DEFAULT_APPROVER_ID,
       approval_opinion: data.comment || '审批驳回'
     })
     return {
@@ -111,6 +114,10 @@ export function checkAccountStatus(data) {
   return checkStatusHttp(data).then(httpOk)
 }
 
+export function changeAccountStatus(data) {
+  return changeStatusHttp(data).then(httpOk)
+}
+
 export function getOperationLogs(params) {
   return fetchOperationLogsHttp(params).then(httpOk)
 }
@@ -119,6 +126,9 @@ export function createOperationLog(data) {
   return writeOperationLogHttp(data).then(httpOk)
 }
 
-export function cancelAssociation(data) {
-  return unbindAssociationHttp(data).then(httpOk)
+export function jointClose(data) {
+  return jointCloseHttp({
+    ...data,
+    operatorName: data?.operatorName || '业务受理员'
+  }).then(httpOk)
 }

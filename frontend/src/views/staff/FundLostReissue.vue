@@ -40,6 +40,7 @@
         <div class="page-result-mark">✓</div>
         <h3>挂失成功</h3>
         <p class="page-result-subtitle">账户状态已更新为 LOST</p>
+        <p class="impact-tip">对关联账户影响：资金账户已挂失，关联证券账户已自动冻结。</p>
         <PageActionRow primary-text="继续恢复账户" @primary="nextStep" />
       </div>
 
@@ -56,6 +57,7 @@
           <p><strong>可用资金：</strong>¥ {{ newAccount.availableBalance.toFixed(2) }}</p>
           <p><strong>冻结资金：</strong>¥ {{ newAccount.frozenAmount.toFixed(2) }}</p>
           <p><strong>状态：</strong>正常</p>
+          <p class="impact-tip" style="margin-top: 12px;">对关联账户影响：资金账户已补办恢复，若证券账户因本次挂失被冻结，将同步恢复正常。</p>
         </PageInfoCard>
       </PageFormBlock>
     </PagePanel>
@@ -169,5 +171,10 @@ const resetForm = () => {
 
 .step-title {
   margin-bottom: 24px;
+}
+
+.impact-tip {
+  margin: 8px 0 0;
+  color: var(--color-text-muted);
 }
 </style>

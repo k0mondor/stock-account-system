@@ -181,6 +181,18 @@ def change_status(
                 "挂失账户恢复必须使用挂失补办接口"
             ),
         )
+    if (
+        payload.target_status == AccountStatus.NORMAL
+        and account_state_service.is_linked_loss_freeze(
+            db,
+            account_type=account_type,
+            account_id=payload.account_id,
+        )
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="该账户因关联账户挂失被自动冻结，必须通过对应挂失补办流程恢复",
+        )
     try:
         account = account_state_service.change_status(
             db,

@@ -1,10 +1,10 @@
 <template>
   <div>
-    <PageHeader title="资金账户密码重置" show-back />
+    <PageHeader title="证券账户密码重置" show-back />
 
     <PagePanel width="narrow">
       <PageInfoCard title="办理说明" style="margin-bottom: 24px;">
-        <p class="inline-tip">该页面用于柜台工作人员核验客户证件后代理重置资金账户密码，不需要输入原密码。</p>
+        <p class="inline-tip">该页面用于柜台工作人员核验客户证件后代理重置证券账户密码，不需要输入原密码。</p>
       </PageInfoCard>
 
       <PageFormBlock>
@@ -12,17 +12,11 @@
           <el-form-item label="工作人员号" label-position="top" prop="staffId" style="margin-bottom: 0;">
             <el-input v-model="form.staffId" placeholder="STAFF000001" style="width: 100%;" />
           </el-form-item>
-          <el-form-item label="资金账户号" label-position="top" prop="fundAccountNo" style="margin-bottom: 0;">
-            <el-input v-model="form.fundAccountNo" placeholder="FUND000001" style="width: 100%;" />
+          <el-form-item label="证券账户号" label-position="top" prop="securitiesAccountNo" style="margin-bottom: 0;">
+            <el-input v-model="form.securitiesAccountNo" placeholder="SEC000001" style="width: 100%;" />
           </el-form-item>
           <el-form-item label="客户证件号码" label-position="top" prop="customerIdNumber" style="margin-bottom: 0;">
             <el-input v-model="form.customerIdNumber" placeholder="请输入客户证件号码" style="width: 100%;" />
-          </el-form-item>
-          <el-form-item label="密码类型" label-position="top" prop="pwdType" style="margin-bottom: 0;">
-            <el-select v-model="form.pwdType" placeholder="请选择密码类型" style="width: 100%;">
-              <el-option label="交易密码" value="trade" />
-              <el-option label="取款密码" value="withdraw" />
-            </el-select>
           </el-form-item>
           <el-form-item label="新密码" label-position="top" prop="newPassword" style="margin-bottom: 0;">
             <el-input v-model="form.newPassword" type="password" placeholder="请输入新密码" style="width: 100%;" />
@@ -51,7 +45,7 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { resetFundPasswordByStaff } from '@/utils/request'
+import { resetSecurityPasswordByStaff } from '@/utils/request'
 import { DEFAULT_OPERATOR_ID } from '@/utils/request/core'
 import PageActionRow from '@/components/PageActionRow.vue'
 import PageFormBlock from '@/components/PageFormBlock.vue'
@@ -61,9 +55,8 @@ import PagePanel from '@/components/PagePanel.vue'
 
 const form = ref({
   staffId: DEFAULT_OPERATOR_ID,
-  fundAccountNo: '',
+  securitiesAccountNo: '',
   customerIdNumber: '',
-  pwdType: '',
   newPassword: '',
   confirmPassword: '',
   reason: ''
@@ -79,9 +72,8 @@ const validateConfirmPassword = (_rule, value, callback) => {
 
 const rules = {
   staffId: [{ required: true, message: '请输入工作人员号', trigger: 'blur' }],
-  fundAccountNo: [{ required: true, message: '请输入资金账户号', trigger: 'blur' }],
+  securitiesAccountNo: [{ required: true, message: '请输入证券账户号', trigger: 'blur' }],
   customerIdNumber: [{ required: true, message: '请输入客户证件号码', trigger: 'blur' }],
-  pwdType: [{ required: true, message: '请选择密码类型', trigger: 'change' }],
   newPassword: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
     { min: 6, message: '密码长度至少6位', trigger: 'blur' }
@@ -98,17 +90,15 @@ const formRef = ref(null)
 const handleSubmit = async () => {
   await formRef.value.validate()
   try {
-    await resetFundPasswordByStaff({
+    await resetSecurityPasswordByStaff({
       staffId: form.value.staffId,
-      fundAccountNo: form.value.fundAccountNo,
+      securitiesAccountNo: form.value.securitiesAccountNo,
       customerIdNumber: form.value.customerIdNumber,
-      pwdType: form.value.pwdType,
       newPassword: form.value.newPassword,
       confirmPassword: form.value.confirmPassword,
       reason: form.value.reason
     })
-    const pwdLabel = form.value.pwdType === 'trade' ? '交易密码' : '取款密码'
-    ElMessage.success(`${pwdLabel}重置成功`)
+    ElMessage.success('证券账户密码重置成功')
     resetForm()
   } catch (e) {
     ElMessage.error(e.message || '密码重置失败')
@@ -118,9 +108,8 @@ const handleSubmit = async () => {
 const resetForm = () => {
   form.value = {
     staffId: DEFAULT_OPERATOR_ID,
-    fundAccountNo: '',
+    securitiesAccountNo: '',
     customerIdNumber: '',
-    pwdType: '',
     newPassword: '',
     confirmPassword: '',
     reason: ''

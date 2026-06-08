@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -9,7 +9,11 @@ from app.core.auth_dependencies import (
 )
 from app.schemas.common import ApiResponse
 from app.schemas.fund_account import AccountCloseRequest, AccountStateChangeRequest
-from app.schemas.security_account import SecuritiesAccountResponse
+from app.schemas.security_account import (
+    SecuritiesAccountResponse,
+    SecurityPasswordResetRequest,
+    SecurityPasswordResetResponse,
+)
 from app.schemas.security_position import (
     PositionChangeRequest,
     PositionChangeResponse,
@@ -71,7 +75,7 @@ def get_security_account(
 @router.delete(
     "/{security_account_id}",
     response_model=ApiResponse[SecuritiesAccountResponse],
-    summary="注销证券账户",
+    summary="禁止单独证券销户",
 )
 def close_security_account(
     security_account_id: str,
@@ -80,22 +84,44 @@ def close_security_account(
     db: Session = Depends(get_db),
 ) -> ApiResponse[SecuritiesAccountResponse]:
     del claims
+    del db, security_account_id, payload
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="请使用联合销户接口",
+    )
+
+
+@router.post(
+    "/{security_account_id}/password/reset",
+    response_model=ApiResponse[SecurityPasswordResetResponse],
+    summary="工作人员代理重置证券账户密码",
+)
+def reset_security_password_by_staff(
+    security_account_id: str,
+    payload: SecurityPasswordResetRequest,
+    claims: dict = Depends(require_service_token),
+    db: Session = Depends(get_db),
+) -> ApiResponse[SecurityPasswordResetResponse]:
+    del claims
     try:
-        account = security_account_service.close_security_account(
+        security_account_service.reset_password_by_staff(
             db,
             security_account_id,
+            staff_id=payload.staff_id,
             customer_id_number=payload.customer_id_number,
-            operator_id=payload.operator_id,
-            operator_name=payload.operator_name,
+            new_password=payload.new_password,
+            reason=payload.reason,
         )
         db.commit()
-        db.refresh(account)
     except Exception:
         db.rollback()
         raise
     return ApiResponse.ok(
-        data=SecuritiesAccountResponse.model_validate(account),
-        message="证券账户注销成功",
+        SecurityPasswordResetResponse(
+            security_account_id=security_account_id,
+            changed=True,
+        ),
+        "密码重置成功",
     )
 
 

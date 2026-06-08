@@ -61,6 +61,24 @@
             <BiText text="鉴权方式/AUTH" />
             <span class="mono">Bearer Token</span>
           </div>
+          <div class="help-item">
+            <BiText text="本地服务令牌/DEV TOKEN" />
+            <span class="mono">{{ tokenStatusText }}</span>
+          </div>
+        </div>
+        <div class="help-muted" style="margin-top: 10px;">
+          柜台与审批页面依赖 `VITE_DEV_BEARER_TOKEN`，并要求它与后端 `backend/.env` 中的 `SERVICE_TOKEN` 保持一致，否则受保护接口会返回 401。
+        </div>
+      </div>
+
+      <div class="help-section">
+        <div class="help-h"><BiText text="业务规则/RULES" /></div>
+        <div class="help-list">
+          <div class="help-item"><BiText text="开户只支持联合开户/JOINT OPEN ONLY" /></div>
+          <div class="help-item"><BiText text="销户只支持联合销户/JOINT CLOSE ONLY" /></div>
+          <div class="help-item"><BiText text="关联只查询不允许手工修改/QUERY ONLY" /></div>
+          <div class="help-item"><BiText text="单边挂失会联动影响关联账户/LINKED IMPACT" /></div>
+          <div class="help-item"><BiText text="普通冻结不自动改另一方状态，但会影响联合业务/FREEZE RESTRICTS JOINT OPS" /></div>
         </div>
       </div>
 
@@ -72,6 +90,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { UiText } from '@/constants/i18n'
 import BiText from '@/components/BiText.vue'
 
@@ -85,6 +104,12 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'same-origin'
+const devBearerToken = import.meta.env.VITE_DEV_BEARER_TOKEN || ''
+const hasConfiguredToken = computed(() => {
+  if (!devBearerToken) return false
+  return !devBearerToken.includes('replace-with-')
+})
+const tokenStatusText = computed(() => (hasConfiguredToken.value ? '已配置/MATCH REQUIRED' : '未配置/NEEDS SETUP'))
 </script>
 
 <style scoped>

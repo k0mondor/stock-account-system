@@ -1,11 +1,15 @@
 import hmac
 from typing import Any
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.orm import Session
 
 from app.core.auth_tokens import verify_access_token
 from app.core.config import settings
+from app.core.enums import StaffRole, StaffStatus
+from app.db.session import get_db
+from app.models.base_data import Staff
 
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -64,3 +68,41 @@ def authorize_security_account(
             detail="访问令牌与证券账户不匹配",
         )
     return claims
+
+
+def require_staff_actor(*allowed_roles: StaffRole | str):
+    normalized_roles = {
+        role.value if isinstance(role, StaffRole) else str(role)
+        for role in allowed_roles
+    }
+
+    def dependency(
+        staff_id: str | None = Header(None, alias="X-Staff-Id"),
+        claims: dict[str, Any] = Depends(require_service_token),
+        db: Session = Depends(get_db),
+    ) -> Staff:
+        del claims
+        if not staff_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="缺少当前工作人员身份信息",
+            )
+        staff = db.get(Staff, staff_id)
+        if not staff:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="当前工作人员不存在",
+            )
+        if staff.staff_status != StaffStatus.ACTIVE.value:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="当前工作人员状态不可用",
+            )
+        if normalized_roles and staff.role not in normalized_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="当前工作人员无权限执行该操作",
+            )
+        return staff
+
+    return dependency

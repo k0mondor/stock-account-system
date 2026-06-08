@@ -1,13 +1,16 @@
 import {
   accountChangePassword,
+  changeAccountStatus,
+  getAssociationHistory,
   checkAccountStatus,
   checkAssociation,
-  createAssociation,
   createOperationLog,
   getAssociations,
   getFundAccount,
+  jointClose as jointCloseApi,
   getOperationLogs,
-  unlinkAssociation,
+  resetFundPasswordByStaff as resetFundPasswordByStaffApi,
+  resetSecurityPasswordByStaff as resetSecurityPasswordByStaffApi,
 } from '@/api/accountApi'
 
 function toAmountNumber(value) {
@@ -31,6 +34,7 @@ function mapFundAccountFromApi(data) {
     bankCardNo: data.bank_card_no,
     availableBalance: toAmountNumber(data.available_amount),
     frozenAmount: toAmountNumber(data.frozen_amount),
+    totalAmount: toAmountNumber(data.total_amount),
     accountStatus: data.account_status || data.status
   }
 }
@@ -73,6 +77,15 @@ export async function queryAssociationDetail(params) {
   return mapAssociationFromApi(data)
 }
 
+export async function queryAssociationHistory(params) {
+  const apiParams = {}
+  if (params?.fundAccountNo) apiParams.fund_account_id = params.fundAccountNo
+  if (params?.securitiesAccountNo) apiParams.security_account_id = params.securitiesAccountNo
+  if (params?.investorId) apiParams.investor_id = params.investorId
+  const data = await getAssociationHistory(apiParams)
+  return asArray(data).map(mapAssociationFromApi)
+}
+
 export async function checkAssociationValid(params) {
   const apiParams = {
     fund_account_id: params.fundAccountNo,
@@ -81,22 +94,6 @@ export async function checkAssociationValid(params) {
   }
   if (params.investorId) apiParams.investor_id = params.investorId
   return await checkAssociation(apiParams)
-}
-
-export async function bindAssociation(params) {
-  const apiParams = {
-    investor_id: params.investorId,
-    fund_account_id: params.fundAccountNo,
-    security_account_id: params.securitiesAccountNo
-  }
-  return await createAssociation(apiParams)
-}
-
-export async function unbindAssociation(params) {
-  const apiParams = {}
-  if (params?.fundAccountNo) apiParams.fund_account_id = params.fundAccountNo
-  if (params?.securitiesAccountNo) apiParams.security_account_id = params.securitiesAccountNo
-  return await unlinkAssociation(apiParams)
 }
 
 export async function changeFundPassword(params) {
@@ -109,12 +106,54 @@ export async function changeFundPassword(params) {
   })
 }
 
+export async function resetFundPasswordByStaff(params) {
+  const pwdType = params?.pwdType === 'withdraw' ? 'WITHDRAW' : 'TRADE'
+  return await resetFundPasswordByStaffApi(params.fundAccountNo, {
+    staff_id: params.staffId,
+    customer_id_number: params.customerIdNumber,
+    password_type: pwdType,
+    new_password: params.newPassword,
+    reason: params.reason
+  })
+}
+
+export async function resetSecurityPasswordByStaff(params) {
+  return await resetSecurityPasswordByStaffApi(params.securitiesAccountNo, {
+    staff_id: params.staffId,
+    customer_id_number: params.customerIdNumber,
+    new_password: params.newPassword,
+    reason: params.reason
+  })
+}
+
+export async function jointClose(params) {
+  return await jointCloseApi({
+    fund_account_id: params.fundAccountNo,
+    security_account_id: params.securitiesAccountNo,
+    customer_id_number: params.customerIdNumber,
+    operator_id: params.operatorId,
+    operator_name: params.operatorName,
+    reason: params.reason || null
+  })
+}
+
 export async function checkStatus(data) {
   return await checkAccountStatus({
     account_type: data.accountType,
     account_id: data.accountId,
     operation_type: data.operationType,
     checked_at: data.checkedAt || new Date().toISOString()
+  })
+}
+
+export async function changeStatus(data) {
+  return await changeAccountStatus({
+    account_type: data.accountType,
+    account_id: data.accountId,
+    target_status: data.targetStatus,
+    reason: data.reason || null,
+    operator_id: data.operatorId,
+    operator_name: data.operatorName
   })
 }
 

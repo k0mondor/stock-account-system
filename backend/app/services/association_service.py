@@ -338,41 +338,8 @@ def unlink_association(
     fund_account_id: str | None = None,
     security_account_id: str | None = None,
 ) -> AccountAssociation:
-    """解除账户关联。"""
-    query = select(AccountAssociation).where(
-        AccountAssociation.association_status == AssociationStatus.ACTIVE.value
+    del db, fund_account_id, security_account_id
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="绑定关系只允许在联合开户/联合销户流程中维护",
     )
-    if fund_account_id:
-        query = query.where(AccountAssociation.fund_account_id == fund_account_id)
-    if security_account_id:
-        query = query.where(AccountAssociation.security_account_id == security_account_id)
-
-    associations = list(db.scalars(query.with_for_update()).all())
-    if not associations:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="未找到有效的账户关联关系",
-        )
-
-    if len(associations) > 1:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="存在多个有效关联关系，请先修复关联数据",
-        )
-
-    association = associations[0]
-    association.association_status = AssociationStatus.UNLINKED.value
-    now = utc_now()
-    association.disassociated_at = now
-    association.updated_at = now
-    add_operation_log(
-        db,
-        operator_id="SYSTEM",
-        operator_name="系统",
-        operation_type="UNLINK_ASSOCIATION",
-        target_type="ASSOCIATION",
-        target_id=association.association_id,
-        operation_detail="解除当前有效绑定关系并保留历史记录",
-    )
-    db.flush()
-    return association

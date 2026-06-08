@@ -27,24 +27,105 @@ ALLOWED_TRANSITIONS = {
     AccountStatus.LOST.value: {AccountStatus.NORMAL.value},
 }
 
+LINKED_LOST_FREEZE_REASONS = {
+    "关联资金账户挂失",
+    "关联证券账户挂失",
+}
 
-def _was_frozen_by_fund_loss(
+
+def _latest_status_change(
     db: Session,
-    security_account_id: str,
-) -> bool:
-    latest_change = db.scalar(
+    *,
+    account_type: str,
+    account_id: str,
+) -> AccountStateChangeRecord | None:
+    return db.scalar(
         select(AccountStateChangeRecord)
         .where(
-            AccountStateChangeRecord.account_type == "SECURITY",
-            AccountStateChangeRecord.account_id == security_account_id,
+            AccountStateChangeRecord.account_type == account_type,
+            AccountStateChangeRecord.account_id == account_id,
         )
         .order_by(AccountStateChangeRecord.changed_at.desc())
         .limit(1)
     )
+
+
+def _was_frozen_by_reason(
+    db: Session,
+    *,
+    account_type: str,
+    account_id: str,
+    reason: str,
+) -> bool:
+    latest_change = _latest_status_change(
+        db,
+        account_type=account_type,
+        account_id=account_id,
+    )
     return bool(
         latest_change
         and latest_change.target_status == AccountStatus.FROZEN.value
-        and latest_change.reason == "关联资金账户挂失"
+        and latest_change.reason == reason
+    )
+
+
+def is_linked_loss_freeze(
+    db: Session,
+    *,
+    account_type: str,
+    account_id: str,
+) -> bool:
+    latest_change = _latest_status_change(
+        db,
+        account_type=account_type,
+        account_id=account_id,
+    )
+    return bool(
+        latest_change
+        and latest_change.target_status == AccountStatus.FROZEN.value
+        and latest_change.reason in LINKED_LOST_FREEZE_REASONS
+    )
+
+
+def _auto_change_linked_status(
+    db: Session,
+    account,
+    *,
+    account_type: str,
+    account_id: str,
+    target_status: AccountStatus,
+    reason: str,
+    operator_id: str,
+    operator_name: str,
+    operation_type: str,
+    operation_detail: str,
+) -> None:
+    previous_status = account.account_status
+    if target_status.value not in ALLOWED_TRANSITIONS.get(previous_status, set()):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"不允许从 {previous_status} 变更为 {target_status.value}",
+        )
+    account.account_status = target_status.value
+    record_status_change(
+        db,
+        account_type=account_type,
+        account_id=account_id,
+        previous_status=previous_status,
+        target_status=target_status.value,
+        reason=reason,
+        operator_id=operator_id,
+        operator_name=operator_name,
+        log_operation=False,
+    )
+    add_operation_log(
+        db,
+        operator_id=operator_id,
+        operator_name=operator_name,
+        operation_type=operation_type,
+        target_type=account_type,
+        target_id=account_id,
+        operation_detail=operation_detail,
     )
 
 
@@ -234,7 +315,7 @@ def change_status(
                 target_status == AccountStatus.LOST
                 and security_account.account_status == AccountStatus.NORMAL.value
             ):
-                _set_status(
+                _auto_change_linked_status(
                     db,
                     security_account,
                     account_type="SECURITY",
@@ -243,15 +324,20 @@ def change_status(
                     reason="关联资金账户挂失",
                     operator_id=operator_id,
                     operator_name=operator_name,
+                    operation_type="AUTO_FREEZE_LINKED_SECURITY",
+                    operation_detail="资金账户挂失，关联证券账户自动冻结",
                 )
             elif (
                 target_status == AccountStatus.NORMAL
                 and security_account.account_status == AccountStatus.FROZEN.value
-                and _was_frozen_by_fund_loss(
-                    db, security_account.security_account_id
+                and _was_frozen_by_reason(
+                    db,
+                    account_type="SECURITY",
+                    account_id=security_account.security_account_id,
+                    reason="关联资金账户挂失",
                 )
             ):
-                _set_status(
+                _auto_change_linked_status(
                     db,
                     security_account,
                     account_type="SECURITY",
@@ -260,6 +346,63 @@ def change_status(
                     reason="关联资金账户挂失补办完成",
                     operator_id=operator_id,
                     operator_name=operator_name,
+                    operation_type="AUTO_RESTORE_LINKED_SECURITY",
+                    operation_detail="资金账户补办恢复，关联证券账户自动恢复正常",
+                )
+
+    if normalized_type == "SECURITY" and target_status in {
+        AccountStatus.LOST,
+        AccountStatus.NORMAL,
+    }:
+        association = db.scalar(
+            select(AccountAssociation).where(
+                AccountAssociation.security_account_id == account_id,
+                AccountAssociation.association_status == AssociationStatus.ACTIVE.value,
+            )
+        )
+        if association:
+            fund_account = db.scalar(
+                select(FundAccount)
+                .where(FundAccount.fund_account_id == association.fund_account_id)
+                .with_for_update()
+            )
+            if (
+                target_status == AccountStatus.LOST
+                and fund_account.account_status == AccountStatus.NORMAL.value
+            ):
+                _auto_change_linked_status(
+                    db,
+                    fund_account,
+                    account_type="FUND",
+                    account_id=fund_account.fund_account_id,
+                    target_status=AccountStatus.FROZEN,
+                    reason="关联证券账户挂失",
+                    operator_id=operator_id,
+                    operator_name=operator_name,
+                    operation_type="AUTO_FREEZE_LINKED_FUND",
+                    operation_detail="证券账户挂失，关联资金账户自动冻结",
+                )
+            elif (
+                target_status == AccountStatus.NORMAL
+                and fund_account.account_status == AccountStatus.FROZEN.value
+                and _was_frozen_by_reason(
+                    db,
+                    account_type="FUND",
+                    account_id=fund_account.fund_account_id,
+                    reason="关联证券账户挂失",
+                )
+            ):
+                _auto_change_linked_status(
+                    db,
+                    fund_account,
+                    account_type="FUND",
+                    account_id=fund_account.fund_account_id,
+                    target_status=AccountStatus.NORMAL,
+                    reason="关联证券账户挂失补办完成",
+                    operator_id=operator_id,
+                    operator_name=operator_name,
+                    operation_type="AUTO_RESTORE_LINKED_FUND",
+                    operation_detail="证券账户补办恢复，关联资金账户自动恢复正常",
                 )
 
     db.flush()

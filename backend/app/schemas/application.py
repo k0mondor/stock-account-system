@@ -32,7 +32,6 @@ class AccountApplicationRead(OrmModel):
 
 
 class AccountApplicationApprove(BaseModel):
-    approver_id: str = Field(..., examples=["APR000001"])
     approval_opinion: str | None = Field(None, max_length=1000)
     bank_card_no: str = Field(..., min_length=8, max_length=32)
     trade_password: str = Field(..., min_length=6, max_length=64)
@@ -40,7 +39,6 @@ class AccountApplicationApprove(BaseModel):
 
 
 class AccountApplicationReject(BaseModel):
-    approver_id: str = Field(..., examples=["APR000001"])
     approval_opinion: str = Field(..., min_length=1, max_length=1000)
 
 

@@ -4,23 +4,104 @@ import { httpClient } from '@/api/httpClient'
 export const accountApiPrefix = import.meta.env.VITE_ACCOUNT_PREFIX || '/api/v1/account'
 export const DEFAULT_OPERATOR_ID = 'STAFF000001'
 export const DEFAULT_OPERATOR_NAME = '业务受理员'
-export const DEFAULT_APPROVER_ID = 'APR000001'
+export const STAFF_SESSION_KEY = 'current_staff_session'
+
+const DEMO_STAFF_SESSIONS = {
+  STAFF: {
+    staff_id: 'STAFF000001',
+    staff_name: '业务受理员',
+    role: 'STAFF',
+    staff_status: 'ACTIVE'
+  },
+  APPROVER: {
+    staff_id: 'APR000001',
+    staff_name: '审批人员',
+    role: 'APPROVER',
+    staff_status: 'ACTIVE'
+  },
+  ADMIN: {
+    staff_id: 'ADMIN000001',
+    staff_name: '系统管理员',
+    role: 'ADMIN',
+    staff_status: 'ACTIVE'
+  }
+}
 
 const customerCache = new Map()
+
+export function readCurrentStaffSession() {
+  try {
+    const raw = localStorage.getItem(STAFF_SESSION_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (!parsed?.staff_id || !parsed?.role) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+export function writeCurrentStaffSession(staff) {
+  if (!staff?.staff_id || !staff?.role) return
+  localStorage.setItem(STAFF_SESSION_KEY, JSON.stringify(staff))
+}
+
+export function clearCurrentStaffSession() {
+  localStorage.removeItem(STAFF_SESSION_KEY)
+}
+
+export async function ensureCurrentStaffSession(roles = []) {
+  const normalizedRoles = roles.map(role => String(role).toUpperCase())
+  const current = readCurrentStaffSession()
+  if (
+    current
+    && (!normalizedRoles.length || normalizedRoles.includes(String(current.role).toUpperCase()))
+  ) {
+    return current
+  }
+
+  const fallbackRole = normalizedRoles.find(role => DEMO_STAFF_SESSIONS[role])
+  if (fallbackRole) {
+    const fallback = DEMO_STAFF_SESSIONS[fallbackRole]
+    writeCurrentStaffSession(fallback)
+    return fallback
+  }
+
+  const staffList = await httpClient.get(`${accountApiPrefix}/staff`)
+  const matched = (Array.isArray(staffList) ? staffList : [])
+    .find(item => {
+      const role = String(item?.role || '').toUpperCase()
+      const status = String(item?.staff_status || '').toUpperCase()
+      return status === 'ACTIVE' && normalizedRoles.includes(role)
+    })
+
+  if (!matched) {
+    throw new Error(`未找到可用的${normalizedRoles.join('/')}工作人员`)
+  }
+
+  writeCurrentStaffSession(matched)
+  return matched
+}
 
 export function httpOk(data) {
   return Promise.resolve({ code: 200, message: 'success', data })
 }
 
 export function normalizeHttpError(error) {
-  const detail = error?.response?.data?.detail ?? error?.message ?? '请求失败'
+  const payload = error?.response?.data
+  const message = payload?.message ?? payload?.detail ?? error?.message ?? '请求失败'
+  const detail = message
   if (Array.isArray(detail)) {
     return new Error(detail.map(item => item?.msg || JSON.stringify(item)).join('；'))
   }
   if (detail && typeof detail === 'object') {
     return new Error(detail.message || JSON.stringify(detail))
   }
-  return new Error(String(detail))
+  const normalized = new Error(String(detail))
+  normalized.code = error?.code ?? payload?.code
+  normalized.requestId = error?.requestId ?? payload?.request_id
+  normalized.status = error?.status ?? error?.response?.status
+  return normalized
 }
 
 export async function wrapHttp(loader) {

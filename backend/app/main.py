@@ -20,6 +20,7 @@ from app.routers import application, base_data, health
 from app.routers.auth import router as auth_router
 from app.routers.association import router as association_router
 from app.routers.fund_account import router as fund_account_router
+from app.routers.joint_account import router as joint_account_router
 from app.routers.operation_log import router as operation_log_router
 from app.routers.security_account import router as security_account_router
 from app.routers.status_check import router as status_check_router
@@ -124,5 +125,6 @@ app.include_router(auth_router, prefix=f"{settings.api_prefix}/auth", tags=["aut
 app.include_router(fund_account_router, prefix=f"{settings.api_prefix}/fund-accounts", tags=["fund-account"])
 app.include_router(security_account_router, prefix=f"{settings.api_prefix}/security-accounts", tags=["security-account"])
 app.include_router(association_router, prefix=f"{settings.api_prefix}/associations", tags=["associations"])
+app.include_router(joint_account_router, prefix=f"{settings.api_prefix}/joint-accounts", tags=["joint-accounts"])
 app.include_router(operation_log_router, prefix=f"{settings.api_prefix}/operation-logs", tags=["operation-logs"])
 app.include_router(status_check_router, prefix=f"{settings.api_prefix}/status", tags=["status-check"])

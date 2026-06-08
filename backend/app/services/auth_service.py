@@ -94,6 +94,8 @@ def change_password(
     old_password: str,
     new_password: str,
 ) -> FundAccount:
+    from app.services.association_service import require_active_association_for_fund
+
     account = db.scalar(
         select(FundAccount)
         .where(FundAccount.fund_account_id == fund_account_id)
@@ -106,6 +108,11 @@ def change_password(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"资金账户状态为 {account.account_status}，不允许修改密码",
         )
+    require_active_association_for_fund(
+        db,
+        fund_account_id=fund_account_id,
+        operation_type="CHANGE_PWD",
+    )
 
     if password_type == PasswordType.TRADE:
         old_hash = account.trade_password_hash

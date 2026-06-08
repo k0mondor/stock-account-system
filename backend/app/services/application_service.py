@@ -29,6 +29,38 @@ def _new_id(prefix: str) -> str:
     return f"{prefix}{uuid4().hex[:18].upper()}"
 
 
+def validate_joint_open_preconditions(db: Session, customer_id: str) -> None:
+    active_association = db.scalars(
+        select(AccountAssociation).where(
+            AccountAssociation.investor_id == customer_id,
+            AccountAssociation.association_status == AssociationStatus.ACTIVE.value,
+        )
+    ).first()
+    if active_association:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="该客户已有当前有效的证券账户与资金账户绑定",
+        )
+
+    active_fund = db.scalars(
+        select(FundAccount).where(
+            FundAccount.investor_id == customer_id,
+            FundAccount.account_status != AccountStatus.CLOSED.value,
+        )
+    ).first()
+    active_security = db.scalars(
+        select(SecuritiesAccount).where(
+            SecuritiesAccount.investor_id == customer_id,
+            SecuritiesAccount.account_status != AccountStatus.CLOSED.value,
+        )
+    ).first()
+    if active_fund or active_security:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="该客户已存在未注销账户，不能重复联合开户",
+        )
+
+
 def submit_application(db: Session, payload: AccountApplicationCreate) -> AccountApplication:
     customer = db.scalar(
         select(Customer)
@@ -53,13 +85,12 @@ def submit_application(db: Session, payload: AccountApplicationCreate) -> Accoun
         select(AccountApplication).where(
             AccountApplication.customer_id == payload.customer_id,
             AccountApplication.app_status == ApplicationStatus.SUBMITTED.value,
-            AccountApplication.proc_status.in_(
-                [ProcessStatus.PENDING.value, ProcessStatus.APPROVED.value]
-            ),
+            AccountApplication.proc_status == ProcessStatus.PENDING.value,
         )
     ).first()
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="客户已有待处理开户申请")
+    validate_joint_open_preconditions(db, payload.customer_id)
 
     application = AccountApplication(
         application_id=_new_id("APP"),
@@ -118,35 +149,7 @@ def approve_application(
     if approver.role not in {StaffRole.APPROVER.value, StaffRole.ADMIN.value}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="当前工作人员无审批权限")
 
-    active_association = db.scalars(
-        select(AccountAssociation).where(
-            AccountAssociation.investor_id == application.customer_id,
-            AccountAssociation.association_status == AssociationStatus.ACTIVE.value,
-        )
-    ).first()
-    if active_association:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="该客户已有当前有效的证券账户与资金账户绑定",
-        )
-
-    active_fund = db.scalars(
-        select(FundAccount).where(
-            FundAccount.investor_id == application.customer_id,
-            FundAccount.account_status != AccountStatus.CLOSED.value,
-        )
-    ).first()
-    active_security = db.scalars(
-        select(SecuritiesAccount).where(
-            SecuritiesAccount.investor_id == application.customer_id,
-            SecuritiesAccount.account_status != AccountStatus.CLOSED.value,
-        )
-    ).first()
-    if active_fund or active_security:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="该客户已存在未注销账户，不能重复联合开户",
-        )
+    validate_joint_open_preconditions(db, application.customer_id)
 
     now = utc_now()
     fund_account_id = _new_id("FUND")
@@ -157,6 +160,7 @@ def approve_application(
             db,
             security_account_id=security_account_id,
             investor_id=application.customer_id,
+            security_password=trade_password,
         )
         fund_account_service.create_fund_account(
             db,

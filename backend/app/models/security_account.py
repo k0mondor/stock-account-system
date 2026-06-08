@@ -19,6 +19,7 @@ class SecuritiesAccount(Base):
     investor_id: Mapped[str] = mapped_column(
         String(32), ForeignKey("customers.customer_id"), nullable=False, index=True
     )
+    security_password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
     account_status: Mapped[str] = mapped_column(
         String(16), default=AccountStatus.NORMAL.value, index=True
     )

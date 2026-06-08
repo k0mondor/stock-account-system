@@ -2,9 +2,11 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.core.auth_dependencies import require_service_token
+from app.core.auth_dependencies import require_service_token, require_staff_actor
 from app.models.application import AccountApplication
+from app.models.base_data import Staff
 from app.core.enums import ApplicationStatus, ProcessStatus
+from app.core.enums import StaffRole
 from app.schemas.application import (
     AccountApplicationApprove,
     AccountApplicationCreate,
@@ -65,12 +67,13 @@ def get_application(
 def approve_application(
     application_id: str,
     payload: AccountApplicationApprove,
+    approver: Staff = Depends(require_staff_actor(StaffRole.APPROVER, StaffRole.ADMIN)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[AccountApplicationRead]:
     application = application_service.approve_application(
         db,
         application_id,
-        payload.approver_id,
+        approver.staff_id,
         payload.approval_opinion,
         payload.bank_card_no,
         payload.trade_password,
@@ -83,12 +86,13 @@ def approve_application(
 def reject_application(
     application_id: str,
     payload: AccountApplicationReject,
+    approver: Staff = Depends(require_staff_actor(StaffRole.APPROVER, StaffRole.ADMIN)),
     db: Session = Depends(get_db),
 ) -> ApiResponse[AccountApplicationRead]:
     application = application_service.reject_application(
         db,
         application_id,
-        payload.approver_id,
+        approver.staff_id,
         payload.approval_opinion,
     )
     return ok(AccountApplicationRead.model_validate(application), "审批拒绝")

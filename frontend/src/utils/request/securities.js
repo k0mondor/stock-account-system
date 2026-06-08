@@ -1,4 +1,5 @@
 import { httpClient } from '@/api/httpClient'
+import { resetSecurityPasswordByStaff as resetSecurityPasswordByStaffHttp } from '@/services/accountService'
 import {
   accountApiPrefix,
   buildOperator,
@@ -41,6 +42,21 @@ export function getSecuritiesAccountByNo(accountNo) {
   return wrapHttp(() => fetchSecuritiesAccountHttp(accountNo))
 }
 
+export function getSecuritiesPositions(data) {
+  return wrapHttp(async () => {
+    const securitiesAccountNo = String(data?.securitiesAccountNo || '').trim()
+    const result = await httpClient.get(`${accountApiPrefix}/security-accounts/${securitiesAccountNo}/positions`)
+    const positions = normalizeArrayResponse(result?.positions ? result.positions : result)
+    return positions.map(item => ({
+      stockCode: item.stock_code,
+      stockName: item.stock_name,
+      totalQuantity: Number(item.total_quantity || 0),
+      availableQuantity: Number(item.available_quantity || 0),
+      frozenQuantity: Number(item.frozen_quantity || 0)
+    }))
+  })
+}
+
 export function openSecuritiesAccount(data) {
   return submitOpenApplication(data)
 }
@@ -71,16 +87,13 @@ export function reissueSecuritiesAccount(data) {
   })
 }
 
-export function cancelSecuritiesAccount(data) {
-  const payload = typeof data === 'string' ? { securitiesAccountNo: data } : data
-  return wrapHttp(async () => {
-    const result = await httpClient.delete(`${accountApiPrefix}/security-accounts/${payload.securitiesAccountNo}`, {
-      data: {
-        customer_id_number: payload.idNo,
-        ...buildOperator(payload)
-      }
-    })
-    const customer = await fetchCustomerHttp(result.investor_id)
-    return mapSecuritiesAccountHttp(result, customer)
-  })
+export function resetSecurityPasswordByStaff(data) {
+  return resetSecurityPasswordByStaffHttp(data).then(() => ({
+    code: 200,
+    message: 'success',
+    data: {
+      securitiesAccountNo: data.securitiesAccountNo,
+      status: 'SUCCESS'
+    }
+  }))
 }

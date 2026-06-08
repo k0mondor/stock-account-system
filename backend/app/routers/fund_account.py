@@ -187,7 +187,7 @@ def reset_password_by_staff(
 @router.delete(
     "/{fund_account_id}",
     response_model=ApiResponse[FundAccountResponse],
-    summary="注销资金账户",
+    summary="禁止单独资金销户",
 )
 def close_fund_account(
     fund_account_id: str,
@@ -196,22 +196,10 @@ def close_fund_account(
     db: Session = Depends(get_db),
 ) -> ApiResponse[FundAccountResponse]:
     del claims
-    try:
-        account = fund_account_service.close_fund_account(
-            db,
-            fund_account_id,
-            customer_id_number=payload.customer_id_number,
-            operator_id=payload.operator_id,
-            operator_name=payload.operator_name,
-        )
-        db.commit()
-        db.refresh(account)
-    except Exception:
-        db.rollback()
-        raise
-    return ApiResponse.ok(
-        data=FundAccountResponse.model_validate(account),
-        message="资金账户注销成功",
+    del db, fund_account_id, payload
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="请使用联合销户接口",
     )
 
 

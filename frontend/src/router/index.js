@@ -15,18 +15,19 @@ const routes = [
   {
     path: '/staff',
     component: () => import('@/views/staff/Layout.vue'),
-    redirect: '/staff/securities/query',
+    redirect: '/staff/joint/open',
     children: [
       { path: 'securities/query', component: () => import('@/views/staff/SecuritiesQuery.vue') },
-      { path: 'securities/open', component: () => import('@/views/staff/SecuritiesOpen.vue') },
+      { path: 'securities/change-pwd', component: () => import('@/views/staff/SecuritiesChangePwd.vue') },
       { path: 'securities/lost-reissue', component: () => import('@/views/staff/SecuritiesLostReissue.vue') },
-      { path: 'securities/cancel', component: () => import('@/views/staff/SecuritiesCancel.vue') },
       { path: 'fund/query', component: () => import('@/views/staff/FundQuery.vue') },
       { path: 'fund/transfer', component: () => import('@/views/staff/FundTransfer.vue') },
       { path: 'fund/lost-reissue', component: () => import('@/views/staff/FundLostReissue.vue') },
-      { path: 'fund/cancel', component: () => import('@/views/staff/FundCancel.vue') },
       { path: 'fund/change-pwd', component: () => import('@/views/staff/FundChangePwd.vue') },
-      { path: 'joint/open', component: () => import('@/views/staff/JointOpen.vue') }
+      { path: 'association/workbench', component: () => import('@/views/staff/AssociationWorkbench.vue') },
+      { path: 'status/workbench', component: () => import('@/views/staff/AccountStatusWorkbench.vue') },
+      { path: 'joint/open', component: () => import('@/views/staff/JointOpen.vue') },
+      { path: 'joint/cancel', component: () => import('@/views/staff/JointCancel.vue') }
     ]
   },
   // 审批人员路由

@@ -42,6 +42,7 @@
         <div class="page-result-mark">✓</div>
         <h3>挂失成功</h3>
         <p class="page-result-subtitle">账户状态已更新为 LOST</p>
+        <p class="impact-tip">对关联账户影响：证券账户已挂失，关联资金账户已自动冻结。</p>
         <PageActionRow primary-text="继续恢复账户" @primary="nextStep" />
       </div>
 
@@ -58,6 +59,7 @@
           <p><strong>投资者姓名：</strong>{{ newAccount.investorName }}</p>
           <p><strong>证件号码：</strong>{{ newAccount.idNo }}</p>
           <p><strong>状态：</strong>正常</p>
+          <p class="impact-tip" style="margin-top: 12px;">对关联账户影响：证券账户已补办恢复，若资金账户因本次挂失被冻结，将同步恢复正常。</p>
         </PageInfoCard>
       </PageFormBlock>
     </PagePanel>
@@ -119,7 +121,7 @@ const handleQuery = async () => {
       ElMessage.error('未找到对应账户')
     }
   } catch (e) {
-    ElMessage.error('查询失败')
+    ElMessage.error(e.message || '查询失败')
   }
 }
 
@@ -173,5 +175,10 @@ const resetForm = () => {
 
 .step-title {
   margin-bottom: 24px;
+}
+
+.impact-tip {
+  margin: 8px 0 0;
+  color: var(--color-text-muted);
 }
 </style>

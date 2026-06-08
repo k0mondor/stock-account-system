@@ -155,9 +155,9 @@ def check_association(
 @router.post(
     "",
     response_model=ApiResponse[AssociationResponse],
-    status_code=status.HTTP_201_CREATED,
-    summary="创建账户关联",
-    description="创建资金账户与证券账户的一对一绑定关系。",
+    status_code=status.HTTP_409_CONFLICT,
+    summary="禁止手工创建账户关联",
+    description="绑定关系只能在联合开户流程中建立。",
 )
 def create_association(
     investor_id: str = Query(..., description="投资者编号"),
@@ -167,29 +167,18 @@ def create_association(
     db: Session = Depends(get_db),
 ) -> ApiResponse[AssociationResponse]:
     del claims
-    try:
-        association = association_service.create_association(
-            db,
-            investor_id=investor_id,
-            fund_account_id=fund_account_id,
-            security_account_id=security_account_id,
-        )
-        db.commit()
-        db.refresh(association)
-    except Exception:
-        db.rollback()
-        raise
-    return ApiResponse.ok(
-        data=AssociationResponse.model_validate(association),
-        message="关联创建成功",
+    del db, investor_id, fund_account_id, security_account_id
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="绑定关系只允许在联合开户/联合销户流程中维护",
     )
 
 
 @router.delete(
     "",
     response_model=ApiResponse[AssociationResponse],
-    summary="解除账户关联",
-    description="解除资金账户与证券账户的绑定关系。",
+    summary="禁止手工解除账户关联",
+    description="解绑关系只能在联合销户流程中结束。",
 )
 def unlink_association(
     fund_account_id: str | None = Query(None, description="资金账户号"),
@@ -198,24 +187,8 @@ def unlink_association(
     db: Session = Depends(get_db),
 ) -> ApiResponse[AssociationResponse]:
     del claims
-    if not fund_account_id and not security_account_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="至少需要提供 fund_account_id 或 security_account_id",
-        )
-
-    try:
-        association = association_service.unlink_association(
-            db,
-            fund_account_id=fund_account_id,
-            security_account_id=security_account_id,
-        )
-        db.commit()
-        db.refresh(association)
-    except Exception:
-        db.rollback()
-        raise
-    return ApiResponse.ok(
-        data=AssociationResponse.model_validate(association),
-        message="关联已解除",
+    del db, fund_account_id, security_account_id
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="绑定关系只允许在联合开户/联合销户流程中维护",
     )

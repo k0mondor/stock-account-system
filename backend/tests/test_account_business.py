@@ -20,6 +20,9 @@ from app.core.enums import (
     StaffStatus,
 )
 from app.core.auth_tokens import issue_access_token, verify_access_token
+from app.core.auth_dependencies import require_staff_actor
+from app.core.security import hash_password, verify_password
+from app.core.time import utc_now
 from app.core.request_context import reset_request_id, set_request_id
 from app.db.session import Base
 from app.models import (
@@ -33,8 +36,18 @@ from app.models import (
 )
 from app.models.operation_log import OperationLog
 from app.schemas.application import AccountApplicationCreate
+from app.schemas.fund_account import AccountCloseRequest
+from app.schemas.fund_account import AccountStateChangeRequest
+from app.schemas.joint_account import JointAccountCloseRequest
 from app.schemas.status_check import StatusCheckRequest
 from app.schemas.status_check import StatusChangeRequest
+from app.routers.association import create_association as create_association_route
+from app.routers.association import unlink_association as unlink_association_route
+from app.routers.fund_account import close_fund_account as close_fund_account_route
+from app.routers.joint_account import close_joint_accounts as close_joint_accounts_route
+from app.routers.security_account import (
+    close_security_account as close_security_account_route,
+)
 from app.routers.status_check import change_status, check_status
 from app.main import http_exception_handler
 from app.db.session import engine as app_engine
@@ -45,6 +58,7 @@ from app.services import (
     association_service,
     auth_service,
     fund_account_service,
+    joint_account_service,
     security_account_service,
     security_position_service,
 )
@@ -112,7 +126,7 @@ class AccountBusinessFlowTest(unittest.TestCase):
         )
         return application
 
-    def test_joint_open_deposit_withdraw_and_close(self):
+    def test_joint_open_and_close_success(self):
         application = self._joint_open()
         fund_account = self.db.get(FundAccount, application.fund_account_id)
         security_account = self.db.get(
@@ -161,25 +175,30 @@ class AccountBusinessFlowTest(unittest.TestCase):
         self.assertEqual(fund_account.available_balance, Decimal("0.00"))
         self.assertEqual(fund_account.total_amount, Decimal("0.00"))
 
-        fund_account_service.close_fund_account(
+        result = joint_account_service.close_joint_accounts(
             self.db,
-            application.fund_account_id,
+            fund_account_id=application.fund_account_id,
+            security_account_id=application.security_account_id,
             customer_id_number="110101200001010001",
             operator_id="APR_TEST",
             operator_name="审批人员",
+            reason="客户主动联合销户",
         )
         self.db.commit()
+        self.assertEqual(result["fund_account_status"], AccountStatus.CLOSED)
+        self.assertEqual(result["security_account_status"], AccountStatus.CLOSED)
         self.assertEqual(fund_account.account_status, AccountStatus.CLOSED.value)
+        self.assertEqual(security_account.account_status, AccountStatus.CLOSED.value)
         self.assertEqual(association.association_status, AssociationStatus.UNLINKED.value)
         self.assertIsNotNone(association.disassociated_at)
 
         logs = list(self.db.scalars(select(OperationLog)).all())
         self.assertEqual(
             {log.operation_type for log in logs},
-            {"JOINT_OPEN", "DEPOSIT", "WITHDRAW", "CLOSE_FUND_ACCOUNT"},
+            {"JOINT_OPEN", "DEPOSIT", "WITHDRAW", "JOINT_CLOSE"},
         )
 
-    def test_withdraw_password_and_nonzero_close_are_enforced(self):
+    def test_withdraw_password_and_joint_close_requires_zero_fund_amount(self):
         application = self._joint_open()
         fund_account_service.deposit(
             self.db,
@@ -207,12 +226,14 @@ class AccountBusinessFlowTest(unittest.TestCase):
         self.db.rollback()
 
         with self.assertRaises(HTTPException) as nonzero_balance:
-            fund_account_service.close_fund_account(
+            joint_account_service.close_joint_accounts(
                 self.db,
-                application.fund_account_id,
+                fund_account_id=application.fund_account_id,
+                security_account_id=application.security_account_id,
                 customer_id_number="110101200001010001",
                 operator_id="APR_TEST",
                 operator_name="审批人员",
+                reason="余额未清零",
             )
         self.assertEqual(nonzero_balance.exception.status_code, 409)
         self.db.rollback()
@@ -221,33 +242,20 @@ class AccountBusinessFlowTest(unittest.TestCase):
         self.assertEqual(account.available_balance, Decimal("50.00"))
         self.assertEqual(account.account_status, AccountStatus.NORMAL.value)
 
-    def test_security_close_preserves_association_history(self):
+    def test_existing_active_joint_pair_blocks_second_joint_open(self):
         application = self._joint_open()
-        account = security_account_service.close_security_account(
-            self.db,
-            application.security_account_id,
-            customer_id_number="110101200001010001",
-            operator_id="APR_TEST",
-            operator_name="审批人员",
-        )
-        self.db.commit()
-
-        association = self.db.scalar(
-            select(AccountAssociation).where(
-                AccountAssociation.security_account_id
-                == application.security_account_id
+        with self.assertRaises(HTTPException) as duplicate_open:
+            application_service.submit_application(
+                self.db,
+                AccountApplicationCreate(
+                    customer_id="CUST_TEST",
+                    applicant_name="测试客户",
+                    id_number="110101200001010001",
+                    phone="13800000001",
+                ),
             )
-        )
-        self.assertEqual(account.account_status, AccountStatus.CLOSED.value)
-        self.assertIsNotNone(association)
-        self.assertEqual(association.association_status, AssociationStatus.UNLINKED.value)
-        history = association_service.list_association_history(
-            self.db,
-            security_account_id=application.security_account_id,
-        )
-        self.assertEqual(len(history), 1)
-        self.assertEqual(history[0].association_status, AssociationStatus.UNLINKED.value)
-        self.assertIsNotNone(history[0].disassociated_at)
+        self.assertEqual(duplicate_open.exception.status_code, 409)
+        self.assertEqual(application.proc_status, "COMPLETED")
 
     def test_completed_application_cannot_be_approved_twice(self):
         application = self._joint_open()
@@ -269,6 +277,7 @@ class AccountBusinessFlowTest(unittest.TestCase):
         second_security = SecuritiesAccount(
             security_account_id="SEC_DUPLICATE",
             investor_id="CUST_TEST",
+            security_password_hash=hash_password("duplicate123"),
         )
         self.db.add(second_security)
         self.db.flush()
@@ -341,6 +350,23 @@ class AccountBusinessFlowTest(unittest.TestCase):
                 "withdraw123",
             )
         self.assertEqual(disabled.exception.status_code, 403)
+
+    def test_require_staff_actor_only_allows_active_approver_or_admin(self):
+        dependency = require_staff_actor("APPROVER", "ADMIN")
+        approver = dependency(
+            staff_id="APR_TEST",
+            claims={"token_type": "SERVICE"},
+            db=self.db,
+        )
+        self.assertEqual(approver.staff_id, "APR_TEST")
+
+        with self.assertRaises(HTTPException) as role_error:
+            dependency(
+                staff_id="STAFF_TEST",
+                claims={"token_type": "SERVICE"},
+                db=self.db,
+            )
+        self.assertEqual(role_error.exception.status_code, 403)
 
     def test_duplicate_business_order_is_rejected(self):
         application = self._joint_open()
@@ -545,6 +571,68 @@ class AccountBusinessFlowTest(unittest.TestCase):
             )
         self.assertEqual(wrong_identity.exception.status_code, 409)
 
+    def test_staff_can_reset_security_password_after_identity_check(self):
+        application = self._joint_open()
+        security_account_service.reset_password_by_staff(
+            self.db,
+            application.security_account_id,
+            staff_id="STAFF_TEST",
+            customer_id_number="110101200001010001",
+            new_password="security-reset",
+            reason="客户忘记密码",
+        )
+        self.db.commit()
+
+        security = self.db.get(SecuritiesAccount, application.security_account_id)
+        self.assertTrue(
+            verify_password("security-reset", security.security_password_hash)
+        )
+
+        with self.assertRaises(HTTPException) as wrong_identity:
+            security_account_service.reset_password_by_staff(
+                self.db,
+                application.security_account_id,
+                staff_id="STAFF_TEST",
+                customer_id_number="wrong-id-number",
+                new_password="another-security-password",
+                reason="身份校验测试",
+            )
+        self.assertEqual(wrong_identity.exception.status_code, 409)
+
+    def test_password_change_and_reset_are_blocked_when_linked_account_is_frozen(self):
+        application = self._joint_open()
+        account_state_service.change_status(
+            self.db,
+            account_type="SECURITY",
+            account_id=application.security_account_id,
+            target_status=AccountStatus.FROZEN,
+            reason="风险控制冻结",
+            operator_id="APR_TEST",
+            operator_name="审批人员",
+        )
+
+        with self.assertRaises(HTTPException) as staff_reset_error:
+            fund_account_service.reset_password_by_staff(
+                self.db,
+                application.fund_account_id,
+                staff_id="STAFF_TEST",
+                customer_id_number="110101200001010001",
+                password_type=PasswordType.TRADE,
+                new_password="trade-blocked",
+                reason="链路冻结校验",
+            )
+        self.assertEqual(staff_reset_error.exception.status_code, 409)
+
+        with self.assertRaises(HTTPException) as self_change_error:
+            auth_service.change_password(
+                self.db,
+                fund_account_id=application.fund_account_id,
+                password_type=PasswordType.TRADE,
+                old_password="trade123",
+                new_password="trade-blocked",
+            )
+        self.assertEqual(self_change_error.exception.status_code, 409)
+
     def test_login_rejects_cross_investor_association(self):
         application = self._joint_open()
         self.db.add(
@@ -587,12 +675,14 @@ class AccountBusinessFlowTest(unittest.TestCase):
         self.assertEqual(loss_identity.exception.status_code, 409)
 
         with self.assertRaises(HTTPException) as close_identity:
-            fund_account_service.close_fund_account(
+            joint_account_service.close_joint_accounts(
                 self.db,
-                application.fund_account_id,
+                fund_account_id=application.fund_account_id,
+                security_account_id=application.security_account_id,
                 customer_id_number="wrong-id-number",
                 operator_id="APR_TEST",
                 operator_name="审批人员",
+                reason="身份不匹配",
             )
         self.assertEqual(close_identity.exception.status_code, 409)
 
@@ -642,10 +732,14 @@ class AccountBusinessFlowTest(unittest.TestCase):
 
     def test_trade_asset_changes_require_active_one_to_one_association(self):
         application = self._joint_open()
-        association_service.unlink_association(
-            self.db,
-            fund_account_id=application.fund_account_id,
+        association = self.db.scalar(
+            select(AccountAssociation).where(
+                AccountAssociation.fund_account_id == application.fund_account_id,
+                AccountAssociation.association_status == AssociationStatus.ACTIVE.value,
+            )
         )
+        association.association_status = AssociationStatus.UNLINKED.value
+        association.disassociated_at = utc_now()
         self.db.flush()
 
         with self.assertRaises(HTTPException) as fund_unlinked:
@@ -712,6 +806,46 @@ class AccountBusinessFlowTest(unittest.TestCase):
             [item.target_status for item in fund_history],
             [AccountStatus.NORMAL.value, AccountStatus.LOST.value],
         )
+        operation_types = {
+            item.operation_type for item in self.db.scalars(select(OperationLog)).all()
+        }
+        self.assertIn("AUTO_FREEZE_LINKED_SECURITY", operation_types)
+        self.assertIn("AUTO_RESTORE_LINKED_SECURITY", operation_types)
+
+    def test_security_lost_and_reissue_sync_fund_status(self):
+        application = self._joint_open()
+
+        security = account_state_service.change_status(
+            self.db,
+            account_type="SECURITY",
+            account_id=application.security_account_id,
+            target_status=AccountStatus.LOST,
+            customer_id_number="110101200001010001",
+            reason="挂失",
+            operator_id="APR_TEST",
+            operator_name="审批人员",
+        )
+        fund = self.db.get(FundAccount, application.fund_account_id)
+        self.assertEqual(security.account_status, AccountStatus.LOST.value)
+        self.assertEqual(fund.account_status, AccountStatus.FROZEN.value)
+
+        account_state_service.change_status(
+            self.db,
+            account_type="SECURITY",
+            account_id=application.security_account_id,
+            target_status=AccountStatus.NORMAL,
+            customer_id_number="110101200001010001",
+            reason="挂失补办",
+            operator_id="APR_TEST",
+            operator_name="审批人员",
+        )
+        self.assertEqual(security.account_status, AccountStatus.NORMAL.value)
+        self.assertEqual(fund.account_status, AccountStatus.NORMAL.value)
+        operation_types = {
+            item.operation_type for item in self.db.scalars(select(OperationLog)).all()
+        }
+        self.assertIn("AUTO_FREEZE_LINKED_FUND", operation_types)
+        self.assertIn("AUTO_RESTORE_LINKED_FUND", operation_types)
 
     def test_business_log_inherits_request_id(self):
         token = set_request_id("REQ-BUSINESS-001")
@@ -760,6 +894,39 @@ class AccountBusinessFlowTest(unittest.TestCase):
         )
         self.assertEqual(security.account_status, AccountStatus.FROZEN.value)
 
+    def test_security_reissue_does_not_remove_independent_fund_freeze(self):
+        application = self._joint_open()
+        fund = account_state_service.change_status(
+            self.db,
+            account_type="FUND",
+            account_id=application.fund_account_id,
+            target_status=AccountStatus.FROZEN,
+            reason="风险控制冻结",
+            operator_id="APR_TEST",
+            operator_name="审批人员",
+        )
+        account_state_service.change_status(
+            self.db,
+            account_type="SECURITY",
+            account_id=application.security_account_id,
+            target_status=AccountStatus.LOST,
+            customer_id_number="110101200001010001",
+            reason="挂失",
+            operator_id="APR_TEST",
+            operator_name="审批人员",
+        )
+        account_state_service.change_status(
+            self.db,
+            account_type="SECURITY",
+            account_id=application.security_account_id,
+            target_status=AccountStatus.NORMAL,
+            customer_id_number="110101200001010001",
+            reason="挂失补办",
+            operator_id="APR_TEST",
+            operator_name="审批人员",
+        )
+        self.assertEqual(fund.account_status, AccountStatus.FROZEN.value)
+
     def test_generic_status_change_only_allows_freeze_and_unfreeze(self):
         application = self._joint_open()
         with self.assertRaises(HTTPException) as invalid_target:
@@ -803,7 +970,36 @@ class AccountBusinessFlowTest(unittest.TestCase):
             )
         self.assertEqual(bypass_reissue.exception.status_code, 409)
 
-    def test_security_position_flow_and_close_constraint(self):
+    def test_generic_unfreeze_cannot_bypass_linked_loss_reissue_flow(self):
+        application = self._joint_open()
+        account_state_service.change_status(
+            self.db,
+            account_type="FUND",
+            account_id=application.fund_account_id,
+            target_status=AccountStatus.LOST,
+            customer_id_number="110101200001010001",
+            reason="挂失",
+            operator_id="APR_TEST",
+            operator_name="审批人员",
+        )
+        self.db.flush()
+
+        with self.assertRaises(HTTPException) as bypass_unfreeze:
+            change_status(
+                StatusChangeRequest(
+                    account_type="SECURITY",
+                    account_id=application.security_account_id,
+                    target_status=AccountStatus.NORMAL,
+                    reason="试图绕过联动补办",
+                    operator_id="APR_TEST",
+                    operator_name="审批人员",
+                ),
+                claims={"token_type": "SERVICE"},
+                db=self.db,
+            )
+        self.assertEqual(bypass_unfreeze.exception.status_code, 409)
+
+    def test_joint_close_fails_when_security_positions_exist(self):
         application = self._joint_open()
         position, _ = security_position_service.change_position(
             self.db,
@@ -833,12 +1029,14 @@ class AccountBusinessFlowTest(unittest.TestCase):
         self.assertEqual(position.frozen_quantity, 40)
 
         with self.assertRaises(HTTPException) as has_position:
-            security_account_service.close_security_account(
+            joint_account_service.close_joint_accounts(
                 self.db,
-                application.security_account_id,
+                fund_account_id=application.fund_account_id,
+                security_account_id=application.security_account_id,
                 customer_id_number="110101200001010001",
                 operator_id="APR_TEST",
                 operator_name="审批人员",
+                reason="存在持仓",
             )
         self.assertEqual(has_position.exception.status_code, 409)
         self.assertIsNotNone(
@@ -849,6 +1047,82 @@ class AccountBusinessFlowTest(unittest.TestCase):
                 )
             )
         )
+
+    def test_single_side_close_routes_are_rejected(self):
+        application = self._joint_open()
+
+        with self.assertRaises(HTTPException) as fund_close_error:
+            close_fund_account_route(
+                application.fund_account_id,
+                AccountCloseRequest(
+                    customer_id_number="110101200001010001",
+                    operator_id="APR_TEST",
+                    operator_name="审批人员",
+                ),
+                claims={"token_type": "SERVICE"},
+                db=self.db,
+            )
+        self.assertEqual(fund_close_error.exception.status_code, 409)
+        self.assertEqual(fund_close_error.exception.detail, "请使用联合销户接口")
+
+        with self.assertRaises(HTTPException) as security_close_error:
+            close_security_account_route(
+                application.security_account_id,
+                AccountCloseRequest(
+                    customer_id_number="110101200001010001",
+                    operator_id="APR_TEST",
+                    operator_name="审批人员",
+                ),
+                claims={"token_type": "SERVICE"},
+                db=self.db,
+            )
+        self.assertEqual(security_close_error.exception.status_code, 409)
+        self.assertEqual(security_close_error.exception.detail, "请使用联合销户接口")
+
+    def test_manual_association_routes_are_rejected(self):
+        with self.assertRaises(HTTPException) as create_error:
+            create_association_route(
+                investor_id="CUST_TEST",
+                fund_account_id="FUND001",
+                security_account_id="SEC001",
+                claims={"token_type": "SERVICE"},
+                db=self.db,
+            )
+        self.assertEqual(create_error.exception.status_code, 409)
+        self.assertEqual(
+            create_error.exception.detail,
+            "绑定关系只允许在联合开户/联合销户流程中维护",
+        )
+
+        with self.assertRaises(HTTPException) as unlink_error:
+            unlink_association_route(
+                fund_account_id="FUND001",
+                security_account_id="SEC001",
+                claims={"token_type": "SERVICE"},
+                db=self.db,
+            )
+        self.assertEqual(unlink_error.exception.status_code, 409)
+        self.assertEqual(
+            unlink_error.exception.detail,
+            "绑定关系只允许在联合开户/联合销户流程中维护",
+        )
+
+    def test_joint_close_route_success(self):
+        application = self._joint_open()
+        response = close_joint_accounts_route(
+            JointAccountCloseRequest(
+                fund_account_id=application.fund_account_id,
+                security_account_id=application.security_account_id,
+                customer_id_number="110101200001010001",
+                operator_id="APR_TEST",
+                operator_name="审批人员",
+                reason="路由联合销户",
+            ),
+            claims={"token_type": "SERVICE"},
+            db=self.db,
+        )
+        self.assertEqual(response.data.fund_account_status, AccountStatus.CLOSED)
+        self.assertEqual(response.data.security_account_status, AccountStatus.CLOSED)
 
 
 if __name__ == "__main__":

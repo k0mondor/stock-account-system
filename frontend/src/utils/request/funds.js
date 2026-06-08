@@ -2,6 +2,7 @@ import { httpClient } from '@/api/httpClient'
 import {
   changeFundPassword as changeFundPasswordHttp,
   getFundAccountByNo as getFundAccountByNoHttp,
+  resetFundPasswordByStaff as resetFundPasswordByStaffHttp,
 } from '@/services/accountService'
 import {
   accountApiPrefix,
@@ -118,18 +119,14 @@ export function changeFundPassword(data) {
   }))
 }
 
-export function cancelFundAccount(data) {
-  const payload = typeof data === 'string' ? { fundAccountNo: data } : data
-  return wrapHttp(async () => {
-    const fundAccountNo = String(payload.fundAccountNo || '').trim()
-    const result = await httpClient.delete(`${accountApiPrefix}/fund-accounts/${fundAccountNo}`, {
-      data: {
-        customer_id_number: payload.idNo,
-        ...buildOperator(payload)
-      }
-    })
-    const customer = await fetchCustomerHttp(result.investor_id)
-    const mapped = await getFundAccountByNoHttp(result.fund_account_id)
-    return mapFundAccountHttp(mapped, customer)
-  })
+export function resetFundPasswordByStaff(data) {
+  return resetFundPasswordByStaffHttp(data).then(() => ({
+    code: 200,
+    message: 'success',
+    data: {
+      fundAccountNo: data.fundAccountNo,
+      passwordType: data.pwdType,
+      status: 'SUCCESS'
+    }
+  }))
 }
