@@ -14,10 +14,6 @@ export function resetFundPasswordByStaff(fundAccountId, data) {
   return httpClient.post(`${prefix}/fund-accounts/${encodeURIComponent(fundAccountId)}/password/reset`, data)
 }
 
-export function resetSecurityPasswordByStaff(securityAccountId, data) {
-  return httpClient.post(`${prefix}/security-accounts/${encodeURIComponent(securityAccountId)}/password/reset`, data)
-}
-
 export function getFundAccount(fundAccountId) {
   return httpClient.get(`${prefix}/fund-accounts/${encodeURIComponent(fundAccountId)}`)
 }

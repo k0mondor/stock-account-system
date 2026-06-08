@@ -18,7 +18,6 @@ const routes = [
     redirect: '/staff/joint/open',
     children: [
       { path: 'securities/query', component: () => import('@/views/staff/SecuritiesQuery.vue') },
-      { path: 'securities/change-pwd', component: () => import('@/views/staff/SecuritiesChangePwd.vue') },
       { path: 'securities/lost-reissue', component: () => import('@/views/staff/SecuritiesLostReissue.vue') },
       { path: 'fund/query', component: () => import('@/views/staff/FundQuery.vue') },
       { path: 'fund/transfer', component: () => import('@/views/staff/FundTransfer.vue') },

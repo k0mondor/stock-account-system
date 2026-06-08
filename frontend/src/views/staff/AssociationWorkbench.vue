@@ -72,6 +72,11 @@
             </template>
           </el-table-column>
           <el-table-column prop="associationTime" label="建立时间" min-width="180" />
+          <el-table-column prop="disassociationTime" label="解除时间" min-width="180">
+            <template #default="{ row }">
+              {{ row.disassociationTime || '--' }}
+            </template>
+          </el-table-column>
         </el-table>
       </PageInfoCard>
     </PagePanel>

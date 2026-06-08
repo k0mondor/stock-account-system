@@ -10,7 +10,6 @@ import {
   jointClose as jointCloseApi,
   getOperationLogs,
   resetFundPasswordByStaff as resetFundPasswordByStaffApi,
-  resetSecurityPasswordByStaff as resetSecurityPasswordByStaffApi,
 } from '@/api/accountApi'
 
 function toAmountNumber(value) {
@@ -47,7 +46,8 @@ function mapAssociationFromApi(data) {
     fundAccountNo: data.fund_account_id,
     securitiesAccountNo: data.security_account_id,
     associationStatus: data.association_status,
-    associationTime: data.associated_at
+    associationTime: data.associated_at,
+    disassociationTime: data.disassociated_at
   }
 }
 
@@ -112,15 +112,6 @@ export async function resetFundPasswordByStaff(params) {
     staff_id: params.staffId,
     customer_id_number: params.customerIdNumber,
     password_type: pwdType,
-    new_password: params.newPassword,
-    reason: params.reason
-  })
-}
-
-export async function resetSecurityPasswordByStaff(params) {
-  return await resetSecurityPasswordByStaffApi(params.securitiesAccountNo, {
-    staff_id: params.staffId,
-    customer_id_number: params.customerIdNumber,
     new_password: params.newPassword,
     reason: params.reason
   })
