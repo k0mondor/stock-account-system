@@ -13,7 +13,7 @@
             <el-input v-model="form.password" type="password" placeholder="请输入取款密码" style="width: 100%;" />
           </el-form-item>
           <el-form-item label="取款金额" label-position="top" prop="amount" style="margin-bottom: 0;">
-            <el-input v-model.number="form.amount" type="number" placeholder="请输入金额" style="width: 100%;" />
+            <el-input v-model="form.amount" inputmode="decimal" placeholder="请输入金额，最多16位整数和2位小数" style="width: 100%;" />
           </el-form-item>
         </el-form>
 
@@ -35,15 +35,32 @@ import PageHeader from '@/components/PageHeader.vue'
 const form = ref({
   fundAccountNo: '',
   password: '',
-  amount: 0
+  amount: ''
 })
+
+const amountPattern = /^\d{1,16}(\.\d{1,2})?$/
+const validateAmount = (_rule, value, callback) => {
+  const normalized = String(value ?? '').trim()
+  if (!normalized) {
+    callback(new Error('请输入取款金额'))
+    return
+  }
+  if (!amountPattern.test(normalized)) {
+    callback(new Error('金额最多16位整数，且最多保留2位小数'))
+    return
+  }
+  if (Number(normalized) <= 0) {
+    callback(new Error('金额必须大于0'))
+    return
+  }
+  callback()
+}
 
 const rules = {
   fundAccountNo: [{ required: true, message: '请输入资金账户号', trigger: 'blur' }],
   password: [{ required: true, message: '请输入取款密码', trigger: 'blur' }],
   amount: [
-    { required: true, message: '请输入取款金额', trigger: 'blur' },
-    { type: 'number', min: 0.01, message: '金额必须大于0', trigger: 'blur' }
+    { validator: validateAmount, trigger: 'blur' }
   ]
 }
 
@@ -55,7 +72,7 @@ const handleWithdraw = async () => {
     const res = await withdraw({
       fundAccountNo: form.value.fundAccountNo,
       password: form.value.password,
-      amount: form.value.amount
+      amount: form.value.amount.trim()
     })
     ElMessage.success(`取款成功！当前可用资金：¥${res.data.availableBalance.toFixed(2)}`)
     resetForm()
@@ -65,7 +82,7 @@ const handleWithdraw = async () => {
 }
 
 const resetForm = () => {
-  form.value = { fundAccountNo: '', password: '', amount: 0 }
+  form.value = { fundAccountNo: '', password: '', amount: '' }
   formRef.value?.resetFields()
 }
 </script>
