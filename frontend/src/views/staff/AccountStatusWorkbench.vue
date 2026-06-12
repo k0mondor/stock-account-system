@@ -97,7 +97,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { changeAccountStatus, checkAccountStatus } from '@/utils/request'
 import { DEFAULT_OPERATOR_ID, DEFAULT_OPERATOR_NAME } from '@/utils/request/core'
@@ -160,6 +160,41 @@ const loadingChange = ref(false)
 const checkResult = ref(null)
 const changeResult = ref(null)
 
+const inferAccountTypeById = (accountId) => {
+  const normalized = String(accountId || '').trim().toUpperCase()
+  if (normalized.startsWith('FUND')) return 'FUND'
+  if (normalized.startsWith('SEC')) return 'SECURITIES'
+  return null
+}
+
+const ensureAccountTypeMatchesId = (form, typeLabel) => {
+  const inferredType = inferAccountTypeById(form.accountId)
+  if (!inferredType) return true
+  if (form.accountType === inferredType) return true
+  ElMessage.error(`${typeLabel}与账户号不匹配，请检查账户类型或账号前缀`)
+  return false
+}
+
+watch(
+  () => checkForm.accountId,
+  (value) => {
+    const inferredType = inferAccountTypeById(value)
+    if (inferredType) {
+      checkForm.accountType = inferredType
+    }
+  }
+)
+
+watch(
+  () => changeForm.accountId,
+  (value) => {
+    const inferredType = inferAccountTypeById(value)
+    if (inferredType) {
+      changeForm.accountType = inferredType
+    }
+  }
+)
+
 const normalizeCheckForm = () => {
   checkForm.accountId = String(checkForm.accountId || '').trim()
 }
@@ -174,6 +209,9 @@ const handleCheck = async () => {
   normalizeCheckForm()
   if (!checkForm.accountId) {
     ElMessage.error('请输入账户号后再校验')
+    return
+  }
+  if (!ensureAccountTypeMatchesId(checkForm, '账户类型')) {
     return
   }
   loadingCheck.value = true
@@ -203,6 +241,9 @@ const handleChangeStatus = async () => {
   normalizeChangeForm()
   if (!changeForm.accountId) {
     ElMessage.error('请输入账户号后再办理状态变更')
+    return
+  }
+  if (!ensureAccountTypeMatchesId(changeForm, '账户类型')) {
     return
   }
   if (!changeForm.operatorId) {

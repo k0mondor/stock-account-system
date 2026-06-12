@@ -3,7 +3,7 @@
     <PageHeader title="证券账户挂失补办" show-back />
 
     <PagePanel>
-      <el-steps :active="step" align-center style="margin-bottom: 32px;">
+      <el-steps :active="step + 1" align-center style="margin-bottom: 32px;">
         <el-step title="信息查询" />
         <el-step title="执行挂失" />
         <el-step title="恢复账户" />
@@ -31,9 +31,9 @@
             <div><strong>状态：</strong><AccountStatusTag :status="accountInfo.accountStatus" /></div>
           </PageDetailGrid>
           <PageActionRow
-            primary-text="执行挂失"
-            :primary-disabled="accountInfo.accountStatus !== AccountStatus.NORMAL"
-            @primary="handleLost"
+            :primary-text="getPrimaryActionText(accountInfo.accountStatus)"
+            :primary-disabled="!canHandlePrimaryAction(accountInfo.accountStatus)"
+            @primary="handlePrimaryAction"
           />
         </PageInfoCard>
       </PageFormBlock>
@@ -89,6 +89,10 @@ const accountInfo = ref(null)
 const newAccount = ref(null)
 
 const normalizeValue = (value) => String(value || '').trim()
+const canReportLost = (status) => status === AccountStatus.NORMAL
+const canReissue = (status) => status === AccountStatus.LOST
+const canHandlePrimaryAction = (status) => canReportLost(status) || canReissue(status)
+const getPrimaryActionText = (status) => (canReissue(status) ? '恢复账户' : '执行挂失')
 
 const handleQuery = async () => {
   if (!form.value.securitiesAccountNo) {
@@ -116,11 +120,16 @@ const handleQuery = async () => {
       }
 
       accountInfo.value = res.data
+      newAccount.value = null
       ElMessage.success('查询成功')
     } else {
+      accountInfo.value = null
+      newAccount.value = null
       ElMessage.error('未找到对应账户')
     }
   } catch (e) {
+    accountInfo.value = null
+    newAccount.value = null
     ElMessage.error(e.message || '查询失败')
   }
 }
@@ -142,6 +151,17 @@ const handleLost = async () => {
 
 const nextStep = () => {
   step.value = 2
+}
+
+const handlePrimaryAction = () => {
+  if (!accountInfo.value) return
+  if (canReissue(accountInfo.value.accountStatus)) {
+    nextStep()
+    return
+  }
+  if (canReportLost(accountInfo.value.accountStatus)) {
+    handleLost()
+  }
 }
 
 const handleReissue = async () => {
