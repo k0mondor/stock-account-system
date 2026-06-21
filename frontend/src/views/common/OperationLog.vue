@@ -13,14 +13,16 @@
         </el-form-item>
 
         <el-form-item label="操作类型" style="margin-bottom: 0;">
-          <el-select v-model="searchType" placeholder="全部" clearable style="width: 160px;">
-            <el-option label="开户" value="OPEN_ACCOUNT" />
-            <el-option label="审批" value="APPROVE" />
+          <el-select v-model="searchType" placeholder="全部" clearable style="width: 200px;">
+            <el-option label="联合开户（审批通过）" value="JOINT_OPEN" />
+            <el-option label="开户审批驳回" value="REJECT_APPLICATION" />
             <el-option label="存款" value="DEPOSIT" />
             <el-option label="取款" value="WITHDRAW" />
-            <el-option label="挂失" value="LOST" />
-            <el-option label="补办" value="REISSUE" />
-            <el-option label="注销" value="CANCEL" />
+            <el-option label="资金账户挂失" value="FUND_LOST" />
+            <el-option label="证券账户挂失" value="SECURITY_LOST" />
+            <el-option label="资金账户补办" value="FUND_NORMAL" />
+            <el-option label="证券账户补办" value="SECURITY_NORMAL" />
+            <el-option label="联合销户" value="JOINT_CLOSE" />
           </el-select>
         </el-form-item>
 
